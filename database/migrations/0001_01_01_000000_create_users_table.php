@@ -12,11 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->id(); // Équivalent de id_user (clé primaire auto-incrémentée)
+            $table->string('nom_user', 100);
+            $table->string('prenom_user', 100);
+            $table->string('email', 150)->unique(); // Équivalent de email_user (identifiant unique de connexion)
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password'); // Équivalent de mot_de_passe_hash (géré de manière hachée et sécurisée)
+            
+            // Ajout de vos contraintes de rôles d'accès du CRM (Admin, Commercial, Lecture, System_Bot)
+            $table->enum('role', ['Admin', 'Commercial', 'Lecture', 'System_Bot'])->default('Commercial');
+            
+            $table->dateTime('derniere_connexion')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

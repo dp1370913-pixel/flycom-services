@@ -1889,3 +1889,299 @@ body.loading-lock {
     box-shadow: none !important; /* Supprime l'effet d'ombrage de focus de Bootstrap */
     color: #ffffff !important;
 }
+
+/* ==========================================================================
+   PAGE CONNEXION CRM - VERROUILLAGE SANS SCROLL & CONSTELLATION NEURONES
+   ========================================================================== */
+
+/* Conteneur absolu du canvas de fond */
+#loginParticles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+    opacity: 1 !important; /* Force l'affichage sans aucune réduction d'opacité */
+}
+
+#loginParticles canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+/* Supprimer ou remplacer l'ancienne règle du login-container pour éviter le conflit */
+.login-container {
+    max-width: 390px !important; /* Calage de sécurité supplémentaire */
+}
+
+/* ==========================================================================
+   STYLES DU CRM BACK-OFFICE (LIAISON NAVBAR ET SIDEBAR)
+   ========================================================================== */
+.sidebar-crm {
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 100;
+}
+
+/* Liens du menu CRM */
+.nav-crm-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.nav-crm-link i {
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.nav-crm-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.nav-crm-link:hover i {
+    transform: translateX(2px);
+}
+
+.nav-crm-link.active {
+    color: #ffffff !important;
+    background-color: rgba(0, 210, 244, 0.08);
+    border-left: 3px solid #00D2F4;
+    font-weight: 600;
+}
+
+.fs-10 {
+    font-size: 0.65rem !important;
+}
+
+.bg-danger-transparent {
+    background-color: rgba(220, 53, 69, 0.08) !important;
+    border: 1px solid rgba(220, 53, 69, 0.15) !important;
+}
+
+/* ==========================================================================
+   CORRECTION DU FOND DE LA SIDEBAR DU CRM
+   ========================================================================== */
+.bg-navy-dark {
+    background-color: #050E2D !important; /* Force la couleur bleu marine sur la sidebar */
+}
+
+/* ==========================================================================
+   TABLEAU DE BORD CRM - COULEURS DES BADGES ET BULLLES KPI (MAQUETTE)
+   ========================================================================== */
+
+/* Bulles d'icônes KPI droites */
+.kpi-icon-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+}
+
+.bg-cyan-soft {
+    background-color: rgba(0, 210, 244, 0.08) !important;
+}
+.bg-primary-soft {
+    background-color: rgba(13, 110, 253, 0.08) !important;
+}
+.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.08) !important;
+}
+.bg-light-soft {
+    background-color: rgba(13, 27, 75, 0.05) !important;
+}
+
+/* Couleurs spécifiques des Badges de Sources (Tableau Leads Récents) */
+.badge-source-whatsapp {
+    background-color: #E8F7EE !important; /* Fond vert pastel */
+    color: #198754 !important; /* Texte vert foncé */
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(25, 135, 84, 0.15);
+}
+
+.badge-source-siteweb {
+    background-color: #E8F3FF !important; /* Fond bleu pastel */
+    color: #0D6EFD !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(13, 110, 253, 0.15);
+}
+
+.badge-source-appel {
+    background-color: #FFF3CD !important; /* Fond orange pastel */
+    color: #FD7E14 !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(253, 126, 20, 0.15);
+}
+
+.badge-source-recom {
+    background-color: #F3E8FF !important; /* Fond violet pastel */
+    color: #6F42C1 !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(111, 66, 193, 0.15);
+}
+
+.badge-source-email {
+    background-color: #F8F9FA !important; /* Fond gris */
+    color: #6C757D !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(108, 117, 125, 0.15);
+}
+
+/* ==========================================================================
+   TABLEAU DE BORD CRM - FILTRES INTERACTIFS ET MICRO-ANIMATIONS (UX)
+   ========================================================================== */
+
+/* Boutons de filtrage de périodes (Image 2) */
+.btn-period-pill {
+    background-color: #ffffff;
+    border: 1px solid #E9ECEF;
+    color: #4A5B73;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 50px;
+    padding: 6px 14px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.btn-period-pill:hover {
+    background-color: #F8F9FA;
+    color: #00D2F4;
+    border-color: rgba(0, 210, 244, 0.25);
+}
+
+.btn-period-pill.active {
+    background-color: #0D1B4B !important;
+    color: #ffffff !important;
+    border-color: #0D1B4B !important;
+    box-shadow: 0 4px 10px rgba(13, 27, 75, 0.15);
+}
+
+/* Micro-animations d'entrée pour les éléments d'administration */
+.animate-fade-in {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUpAdmin 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUpAdmin {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Effets interactifs de survol sur les cartes d'indicateurs (KPIs) */
+.kpi-hover-card {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.3s ease !important;
+}
+
+.kpi-hover-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(13, 27, 75, 0.05) !important;
+}
+
+/* Effet de survol sur les lignes du tableau */
+.table-row-hover {
+    transition: background-color 0.2s ease;
+}
+
+.table-row-hover:hover {
+    background-color: rgba(0, 210, 244, 0.02) !important;
+}
+
+/* Effet de relief sur les listes de relances */
+.list-item-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.list-item-hover:hover {
+    transform: translateX(3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+/* Bouton Voir le site */
+.hover-cyan {
+    transition: all 0.2s ease;
+}
+.hover-cyan:hover {
+    background-color: rgba(0, 210, 244, 0.08) !important;
+    color: #00D2F4 !important;
+}
+
+/* ==========================================================================
+   PAGE CRM - STYLES DE CONTRÔLE DES AVATARS ET DYNAMISATION DES CARTES
+   ========================================================================== */
+
+/* 1. Tracé géométrique strict de l'avatar circulaire (Sidebar & Header) */
+.avatar-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50% !important; /* Force la géométrie circulaire */
+    background-color: #00D2F4 !important; /* Cyan Électrique */
+    color: #050E2D !important; /* Contraste Bleu Marine */
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 210, 244, 0.25);
+}
+
+/* 2. Dynamisation et interactivité de toutes les cartes du CRM au survol (Hover) */
+.card {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.35s ease, 
+                border-color 0.35s ease !important;
+}
+
+.card:hover {
+    transform: translateY(-4px); /* Élévation fluide */
+    box-shadow: 0 12px 30px rgba(0, 210, 244, 0.08) !important; /* Halo de brillance cyan */
+    border-color: rgba(0, 210, 244, 0.2) !important; /* Liseré cyan */
+}
+
+/* ==========================================================================
+   PAGE CRM - SIDEBAR ANIMÉE (LIAISON STRICTE)
+   ========================================================================== */
+.sidebar-crm {
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 100;
+    position: relative;
+}
+
+/* Force l'empilement du contenu de la sidebar au-dessus du canvas */
+.z-3 {
+    z-index: 3 !important;
+}
