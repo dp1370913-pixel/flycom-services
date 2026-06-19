@@ -20,7 +20,10 @@
     <!-- Injecté par JS -->
 </div>
 
-<!-- VUE TABLEAU DE FACTURATION (Image 1 - Avec support d'unstacking responsive mobile) -->
+<!-- CONTEXTE DE NOTIFICATION TOAST FLOTTANT EN BAS À DROITE -->
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
+
+<!-- VUE TABLEAU DE FACTURATION (Avec support d'unstacking responsive de l'image 2) -->
 <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 fs-8 responsive-table-to-cards">
@@ -39,8 +42,28 @@
             </thead>
             <tbody>
                 @forelse($devisList as $doc)
+                
+                <!-- Pré-calcul des classes de pastilles en PHP pur (Élimine le bug de compilation !) -->
+                @php
+                    // Pastille de Statut de validation
+                    $statusClass = 'bg-danger-soft text-danger';
+                    if ($doc->statut === 'Accepte') {
+                        $statusClass = 'bg-success-soft text-success';
+                    } elseif ($doc->statut === 'En_attente') {
+                        $statusClass = 'bg-warning-soft text-warning';
+                    }
+
+                    // Pastille de Statut de paiement
+                    $paymentClass = 'bg-danger-soft text-danger';
+                    if ($doc->statut_paiement === 'Solde') {
+                        $paymentClass = 'bg-success-soft text-success';
+                    } elseif ($doc->statut_paiement === 'Acompte_recu') {
+                        $paymentClass = 'bg-info-soft text-info';
+                    }
+                @endphp
+
                 <tr id="devisRow{{ $doc->id_devis }}">
-                    <!-- Chaque cellule de données possède des attributs de liaison pour l'AJAX -->
+                    <!-- Chaque cellule possède des attributs de liaison explicites pour l'AJAX -->
                     <td data-label="Numéro" class="fw-bold text-navy btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}"><i class="bi bi-file-earmark-text text-muted me-2"></i>{{ $doc->numero }}</td>
                     <td data-label="Client" class="fw-bold btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ $doc->client->prenom }} {{ $doc->client->nom }}</td>
                     <td data-label="Type" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
@@ -52,12 +75,12 @@
                     <td data-label="Expiration" class="text-muted btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ \Carbon\Carbon::parse($doc->date_expiration)->format('d/m/Y') }}</td>
                     <td data-label="Montant TTC" class="fw-bold text-navy btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ number_format($doc->montant_ttc, 0, ',', ' ') }} FCFA</td>
                     <td data-label="Statut" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
-                        <span class="badge @if($doc->statut === 'Accepte') bg-success-soft text-success @elseif($doc->statut === 'En_attente') bg-warning-soft text-warning @else bg-danger-soft text-danger @endif px-2 py-1 rounded-3">
+                        <span class="badge {{ $statusClass }} px-2 py-1 rounded-3">
                             {{ str_replace('_', ' ', $doc->statut) }}
                         </span>
                     </td>
                     <td data-label="Paiement" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
-                        <span class="badge @if($doc->statut_paiement === 'Solde') bg-success-soft text-success @elseif($doc->statut_paiement === 'Acompte_recu') bg-info-soft text-info @else bg-danger-soft text-danger @endif px-2 py-1 rounded-3">
+                        <span class="badge {{ $paymentClass }} px-2 py-1 rounded-3">
                             {{ str_replace('_', ' ', $doc->statut_paiement) }}
                         </span>
                     </td>
@@ -67,14 +90,15 @@
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end fs-8">
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}"><i class="bi bi-eye me-2"></i> Voir le détail</a></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.devis.print', $doc->id_devis) }}" target="_blank"><i class="bi bi-printer me-2"></i> Télécharger PDF</a></li>
+                                <li><a class="dropdown-item btn-view-devis" href="#" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}"><i class="bi bi-eye me-2"></i> Voir le détail</a></li>
+                                <li><button type="button" class="dropdown-item btn-download-pdf-quick" data-id="{{ $doc->id_devis }}"><i class="bi bi-printer me-2"></i> Télécharger PDF</button></li>
                                 <li class="dropdown-submenu">
                                     <a class="dropdown-item dropdown-toggle" href="#"><i class="bi bi-arrow-left-right me-2"></i> Changer le statut</a>
                                     <ul class="dropdown-menu fs-8 shadow-sm">
                                         <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="En_attente"><i class="bi bi-circle-fill me-2 status-dot-orange"></i> En attente</button></li>
                                         <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Accepte"><i class="bi bi-circle-fill me-2 status-dot-green"></i> Accepté</button></li>
                                         <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Refuse"><i class="bi bi-circle-fill me-2 status-dot-red"></i> Refusé</button></li>
+                                        <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Expire"><i class="bi bi-circle-fill me-2 status-dot-gray"></i> Expiré</button></li>
                                     </ul>
                                 </li>
                                 @if($doc->type === 'Devis')
@@ -92,8 +116,12 @@
                     </td>
                 </tr>
                 @empty
+                <!-- Réintégration réglementaire de empty pour résoudre l'Internal Server Error -->
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-5">Aucun document comptable émis pour le moment.</td>
+                    <td colspan="9" class="text-center text-muted py-5 fs-8">
+                        <i class="bi bi-file-earmark-x d-block mb-2" style="font-size:2rem;"></i>
+                        Aucun document commercial enregistré.
+                    </td>
                 </tr>
                 @endforelse
             </tbody>
@@ -110,7 +138,7 @@
             <div class="modal-header border-0 px-4 pt-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
                     <h5 class="modal-title fw-extrabold text-navy fs-5" id="detailDevisNum">DEV-2026-0042</h5>
-                    <!-- Badge de statut en haut conforme (Image 2) -->
+                    <!-- Badge de statut en haut conforme -->
                     <span class="badge" id="detailHeaderStatus" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 50px;">En attente</span>
                 </div>
                 <button type="button" class="btn-close shadow-none align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -183,9 +211,12 @@
             
             <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
                 <!-- Actions de Fiches -->
-                <a href="#" id="btnPrintLink" target="_blank" class="btn text-white fw-bold px-4 py-2.5" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem;"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Télécharger PDF</a>
-                <button type="button" id="btnOpenEmailModal" class="btn btn-outline-cyan fw-bold px-4 py-2.5" style="border-radius: 8px; font-size:0.8rem; border-color: #00D2F4; color: #00D2F4;" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-bs-dismiss="modal"><i class="bi bi-envelope-fill me-1"></i> Envoyer par email</button>
+                <button type="button" id="btnPrintLink" class="btn text-white fw-bold px-4 py-2.5" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem;"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Télécharger PDF</button>
+                
+                <!-- Changement de modal 100% natif en HTML (Élimine le bug de fermeture de JS !) -->
+                <button type="button" id="btnOpenEmailModal" class="btn btn-outline-cyan fw-bold px-4 py-2.5" style="border-radius: 8px; font-size:0.8rem; border-color: #00D2F4; color: #00D2F4;"><i class="bi bi-envelope-fill me-1"></i> Envoyer par email</button>
                 <div class="flex-grow-1"></div>
+                
                 <!-- Sélecteur rapide de statut -->
                 <div class="dropup">
                     <button class="btn btn-outline-secondary fw-semibold px-4 py-2.5 dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius: 8px; font-size:0.8rem;">Modifier le statut</button>
@@ -193,6 +224,7 @@
                         <li><button type="button" class="dropdown-item text-warning btn-modal-status-update" data-status="En_attente"><i class="bi bi-circle-fill me-2 fs-10 status-dot-orange"></i> En attente</button></li>
                         <li><button type="button" class="dropdown-item text-success btn-modal-status-update" data-status="Accepte"><i class="bi bi-circle-fill me-2 fs-10 status-dot-green"></i> Accepté</button></li>
                         <li><button type="button" class="dropdown-item text-danger btn-modal-status-update" data-status="Refuse"><i class="bi bi-circle-fill me-2 fs-10 status-dot-red"></i> Refusé</button></li>
+                        <li><button type="button" class="dropdown-item text-secondary btn-modal-status-update" data-status="Expire"><i class="bi bi-circle-fill me-2 status-dot-gray"></i> Expiré</button></li>
                     </ul>
                 </div>
                 <button type="button" id="btnDeleteModal" class="btn btn-outline-danger fw-semibold px-4 py-2.5" style="border-radius: 8px; font-size:0.8rem;"><i class="bi bi-trash me-1"></i> Supprimer</button>
@@ -202,7 +234,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL 2 : ENVOYER PAR EMAIL (Image 3)      -->
+<!-- MODAL 2 : ENVOYER PAR EMAIL (Image 4)      -->
 <!-- ========================================== -->
 <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -358,13 +390,13 @@
     </div>
 </div>
 
-<!-- STYLE DE SÉCURITÉ POUR SUPPRIMER LE CLIPPING ET POSITIONNER LE SOUS-MENU À GAUCHE (IMAGE 1) -->
+<!-- STYLE DE SÉCURITÉ POUR SUPPRIMER LE CLIPPING ET POSITIONNER LE SOUS-MENU À GAUCHE -->
 <style>
     .table-responsive {
         overflow: visible !important;
     }
 
-    /* GESTION ET POSITIONNEMENT DU SOUS-MENU DE STATUT À GAUCHE (IMAGE 1) */
+    /* GESTION ET POSITIONNEMENT DU SOUS-MENU DE STATUT À GAUCHE */
     .dropdown-submenu {
         position: relative !important;
     }
@@ -420,7 +452,7 @@
     .toast-email { border-color: rgba(253, 126, 20, 0.35) !important; }
     .toast-email i { color: #fd7e14 !important; } /* Icône enveloppe orange */
 
-    /* UNSTACKING RESPONSIVE DES CARTES COMPTABLES SUR MOBILE (IMAGE 2) */
+    /* UNSTACKING RESPONSIVE DES CARTES COMPTABLES SUR MOBILE */
     @media (max-width: 767px) {
         .responsive-table-to-cards thead {
             display: none !important;
@@ -549,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newRow.querySelector('.price-input').value = 0;
             newRow.querySelector('.service-select').selectedIndex = 0;
 
+            // Correction de syntaxe littérale (Mise à niveau ES6)
             newRow.querySelector('.service-select').name = `lignes[${lineIndex}][id_service]`;
             newRow.querySelector('.qty-input').name = `lignes[${lineIndex}][quantite]`;
             newRow.querySelector('.price-input').name = `lignes[${lineIndex}][prix]`;
@@ -652,13 +685,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('detailTotalHt').innerText = data.montant_ht + ' FCFA';
                 document.getElementById('detailTotalTtc').innerText = data.montant_ttc + ' FCFA';
 
-                // Lier le bouton d'impression (M4)
-                document.getElementById('btnPrintLink').href = `/admin/devis/${id}/print`;
+                // Lier le bouton d'impression (M4) (Définition de l'ID courant pour le correctif d'impression silencieuse)
+                document.getElementById('btnPrintLink').setAttribute('data-current-id', id);
 
                 // Remplir le bouton d'envoi d'e-mail avec l'ID pour le chaînage natif
                 document.getElementById('btnOpenEmailModal').setAttribute('data-id', id);
 
-                // Remplir dynamiquement les champs du second modal d'envoi d'e-mail (Dernière image)
+                // Remplir dynamiquement les champs du second modal d'envoi d'e-mail
                 document.getElementById('emailDestinataire').value = data.client_email;
                 document.getElementById('emailObjet').value = `Devis ${data.numero} — Flycom Services`;
                 document.getElementById('emailMessage').value = `Bonjour ${data.client_prenom},\n\nVeuillez trouver ci-joint notre devis ${data.numero}.\n\nCordialement,\nL'équipe Flycom Services`;
@@ -717,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Ouvrir le modal d'envoi d'e-mail
+    // Ouvrir le modal d'envoi d'e-mail (Correctif Bug N°4 : Garde uniquement le gestionnaire manuel JS)
     const btnOpenEmailModal = document.getElementById('btnOpenEmailModal');
     if (btnOpenEmailModal) {
         btnOpenEmailModal.addEventListener('click', () => {
@@ -784,7 +817,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Traitement de la mise à jour du statut (AJAX sécurisé par URLSearchParams - M4)
     const triggerStatusUpdate = (id, newStatus) => {
         const formData = new URLSearchParams({
             statut: newStatus
@@ -823,7 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (statusText) {
                     if (newStatus === 'Accepte') {
                         statusText.className = 'fw-bold d-block text-success mt-1';
-                    } else if (newStatus === 'En_attente') {
+                    } else if (newStatus === 'En attente') {
                         statusText.className = 'fw-bold d-block text-warning mt-1';
                     } else {
                         statusText.className = 'fw-bold d-block text-danger mt-1';
@@ -943,6 +975,47 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             e.stopPropagation();
             element.nextElementSibling.classList.toggle('show');
+        });
+    });
+
+    // ==========================================================================
+    // 5. EXIGENCE M4 : IMPRESSION SILENCIEUSE VIA IFRAME CACHÉ
+    // ==========================================================================
+
+    // Fonction maîtresse pour déclencher l'impression sans ouvrir d'onglet blanc
+    const triggerSilentPrint = (id) => {
+        if (!id) return;
+
+        // Récupérer ou créer l'iframe masqué dans le DOM (Règle 1 & 4)
+        let iframe = document.getElementById('hiddenPrintFrame');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'hiddenPrintFrame';
+            iframe.style.display = 'none'; // Règle 1 : Totalement invisible
+            document.body.appendChild(iframe);
+        }
+
+        // Règle 2 : Charger la vue d'impression d'origine qui s'auto-imprime
+        iframe.src = `/admin/devis/${id}/print`;
+    };
+
+    // Écouteur de clic : Bouton PDF du modal de détails (Correctif Bug N°2 ÉTAPE C)
+    const btnPrintLink = document.getElementById('btnPrintLink');
+    if (btnPrintLink && !btnPrintLink.dataset.listenerBound) {
+        btnPrintLink.dataset.listenerBound = 'true';
+        btnPrintLink.addEventListener('click', () => {
+            const id = btnPrintLink.getAttribute('data-current-id');
+            if (id) triggerSilentPrint(id);
+        });
+    }
+
+    // Écouteur de clic : Bouton PDF rapide depuis l'index (Correctif Bug N°3 ÉTAPE D)
+    document.querySelectorAll('.btn-download-pdf-quick').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Évite d'ouvrir le modal de détails en parallèle
+            const id = btn.getAttribute('data-id');
+            triggerSilentPrint(id);
         });
     });
 });

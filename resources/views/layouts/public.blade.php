@@ -49,7 +49,7 @@
     </div>
 
     <!-- NAVBAR COMMUNE -->
-    <header class="navbar-sticky">
+    <header class="navbar-sticky fixed-top">
         <nav class="navbar navbar-expand-lg navbar-dark container py-3" aria-label="Menu Principal">
             <div class="container-fluid px-0">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
