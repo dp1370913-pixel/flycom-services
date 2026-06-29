@@ -2185,3 +2185,72 @@ body.loading-lock {
 .z-3 {
     z-index: 3 !important;
 }
+
+
+/* ==========================================================================
+   REFONTE UX MOBILE-FIRST DE L'ASSISTANT CHATBOT IA (CONFORME WCAG)
+   ========================================================================== */
+
+/* 1. Fenêtre de chat globale (Version Bureau / Desktop) */
+.chatbot-window {
+    position: fixed;
+    bottom: 100px;
+    left: 30px; /* Positionné en bas à gauche de l'écran */
+    width: 380px;
+    height: 520px;
+    background-color: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 15px 45px rgba(5, 14, 45, 0.15);
+    z-index: 2000 !important; /* S'affiche au-dessus des autres boutons flottants */
+    display: none; /* Géré par votre script de bascule JS */
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+/* Corps scrollable des messages échangés */
+.chatbot-messages-body {
+    flex-grow: 1; /* S'adapte de manière flexible à la hauteur disponible */
+    overflow-y: auto; /* Permet le défilement fluide */
+    padding: 20px;
+    background-color: #F8FAFC;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Zone de saisie inférieure */
+.chatbot-input-footer {
+    flex-shrink: 0; /* Ne rétrécit JAMAIS, reste toujours visible */
+    background-color: #ffffff;
+    border-top: 1px solid #E2E8F0;
+    padding: 12px 15px;
+}
+
+/* 2. TRANSFORMATION PLEIN ÉCRAN POUR MOBILE (Inférieur à 576px - Élimine le scroll de page) */
+@media (max-width: 576px) {
+    .chatbot-window {
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important; /* Gère la hauteur dynamique lors de l'ouverture du clavier */
+        border-radius: 0 !important; /* Angles droits plus propres en plein écran mobile */
+        border: none !important;
+        box-shadow: none !important;
+        z-index: 99999 !important; /* Recouvre complètement l'écran pour isoler l'expérience */
+    }
+
+    /* Ajustement des en-têtes et pieds de page pour le format mobile */
+    .chatbot-header {
+        padding: 16px 20px !important;
+        border-radius: 0 !important;
+    }
+
+    .chatbot-input-footer {
+        padding: 14px 15px !important;
+    }
+}

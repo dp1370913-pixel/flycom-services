@@ -7,7 +7,7 @@
     
     <!-- SEO Technique -->
     <meta name="description" content="@yield('meta_description', 'Flycom Services par Groupe DigiZone. Experts à Brazzaville : Réseaux, Vidéosurveillance, Solaire, Climatisation et Location.')">
-    <link rel="canonical" href="{{ url()->current() }}">
+    <link class="canonical" href="{{ url()->current() }}">
     
     <meta name="geo.region" content="CG-12" />
     <meta name="geo.placename" content="Brazzaville" />
@@ -25,11 +25,35 @@
 
     <!-- Zone pour l'injection des Schémas JSON-LD spécifiques à chaque page -->
     @yield('json_ld')
+
+    <style>
+        /* Styles de positionnement et d'animations du Chatbot M7 */
+        .fs-8 { font-size: 0.85rem !important; }
+        .fs-9 { font-size: 0.75rem !important; }
+        .text-white-70 { color: rgba(255, 255, 255, 0.7) !important; }
+        .bg-cyan-soft { background-color: #00B4D8 !important; color: #fff !important; }
+        
+        /* Personnalisation de la fenêtre de discussion du chatbot */
+        #chatbot-container {
+            width: 380px;
+            height: 480px;
+            z-index: 1085;
+            margin-bottom: 95px !important;
+            border: 1px solid #E2E8F0 !important;
+            background-color: #ffffff;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Styles du preloader pour éviter le blocage de l'écran */
+        .loading-lock {
+            overflow: hidden !important;
+        }
+    </style>
 </head>
 <body class="loading-lock">
 
     <!-- PRELOADER UNIQUE -->
-    <div id="preloader" class="preloader-overlay">
+    <div id="preloader" class="preloader-overlay" style="opacity: 1; transition: opacity 0.5s ease;">
         <div class="network-particles"></div> 
         <div class="preloader-content text-center">
             <div class="preloader-icon-container mb-4">
@@ -43,7 +67,7 @@
             <h2 class="preloader-title fw-extrabold text-white mb-2">FLYCOM <span class="text-cyan">SERVICES</span></h2>
             <p class="preloader-subtitle mb-3">Chargement de l'expérience...</p>
             <div class="preloader-progress-bar">
-                <div class="preloader-progress-fill" id="preloaderProgress"></div>
+                <div class="preloader-progress-fill" id="preloaderProgress" style="width: 0%; transition: width 0.1s ease;"></div>
             </div>
         </div>
     </div>
@@ -162,12 +186,239 @@
         </div>
     </footer>
 
-    <!-- WIDGETS FLOTTANTS -->
+    <!-- WIDGETS FLOTTANTS (Image M7 & Image 2 WhatsApp) -->
     <div class="floating-widgets">
-        <button class="widget-btn bg-navy text-cyan shadow" aria-label="Support AI"><i class="bi bi-robot"></i></button>
-        <a href="https://wa.me/242066285741" target="_blank" class="widget-btn bg-success text-white shadow" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        <!-- Bouton flottant du Chatbot IA -->
+        <button id="chatbot-toggle-btn" class="widget-btn bg-navy text-cyan shadow" aria-label="Support AI">
+            <i id="chatbot-icon" class="bi bi-robot"></i>
+        </button>
+        <!-- Bouton flottant WhatsApp -->
+        <a href="https://wa.me/242066285741" target="_blank" class="widget-btn bg-success text-white shadow" aria-label="WhatsApp">
+            <i class="bi bi-whatsapp"></i>
+        </a>
     </div>
 
+    <!-- Interface Graphique de la Fenêtre de Discussion du Chatbot M7 -->
+    <div id="chatbot-container" class="card border-0 shadow-lg rounded-4 position-fixed bottom-0 end-0 m-4 d-none" style="width: 380px; height: 500px; z-index: 1080; margin-bottom: 95px !important; border: 1px solid #E2E8F0 !important;">
+        <!-- En-tête (Navy Blue #0D1B4B) -->
+        <div class="card-header text-white d-flex justify-content-between align-items-center py-3" style="background-color: #0D1B4B; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-cyan rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; background-color: #00B4D8;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">Assistant Flycom</h6>
+                    <small class="text-success" style="font-size: 0.75rem;"><span class="d-inline-block rounded-circle bg-success me-1" style="width: 8px; height: 8px;"></span> En ligne</small>
+                </div>
+            </div>
+            <button id="chatbot-close-btn" class="btn-close btn-close-white btn-sm shadow-none" aria-label="Fermer"></button>
+        </div>
+
+        <!-- Zone d'affichage des messages -->
+        <div class="card-body overflow-y-auto d-flex flex-column gap-3 p-3" id="chatbot-messages-box" style="background-color: #F8FAFC; height: 370px;">
+            <!-- Message de bienvenue initial -->
+            <div class="d-flex gap-2 align-items-start">
+                <div class="bg-cyan rounded-circle p-1 text-white text-center" style="width: 24px; height: 24px; background-color: #00B4D8; font-size: 0.7rem;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="p-2.5 rounded-3 text-dark small" style="background-color: #E2E8F0; max-width: 80%; white-space: pre-line;">
+                    Bonjour ! Je suis l'assistant virtuel de Flycom Services. Comment puis-je vous aider aujourd'hui ?
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone de saisie utilisateur -->
+        <div class="card-footer bg-white border-top p-2" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+            <form id="chatbot-input-form" class="input-group">
+                <input type="text" id="chatbot-user-text" class="form-control border-0 shadow-none fs-8" placeholder="Écrivez votre message..." autocomplete="off" required>
+                <button class="btn btn-cyan rounded-3 text-white px-3 d-flex align-items-center justify-content-center" type="submit" style="background-color: #00B4D8; border: none;">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chargement de Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- SCRIPT SYSTÈME : EXTINCTION DU PRELOADER ET ANIMATIONS DU CHATBOT (Image M7) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // ========================================================
+            // 1. EXTINCTION ET SIMULATION DU PRELOADER (Libère le body-lock)
+            // ========================================================
+            const preloader = document.getElementById('preloader');
+            const preloaderProgress = document.getElementById('preloaderProgress');
+            
+            if (preloader) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 20;
+                    if (preloaderProgress) {
+                        preloaderProgress.style.width = progress + '%';
+                    }
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        
+                        // Transition en fondu vers le haut
+                        preloader.style.opacity = '0';
+                        preloader.style.transition = 'opacity 0.4s ease';
+                        
+                        setTimeout(() => {
+                            preloader.style.display = 'none';
+                            document.body.classList.remove('loading-lock');
+                        }, 400);
+                    }
+                }, 80);
+            }
+
+            // ========================================================
+            // 2. ANIMATION ET APPELS D'API GEMINI DU CHATBOT (Image M7)
+            // ========================================================
+            const toggleBtn = document.getElementById('chatbot-toggle-btn');
+            const closeBtn = document.getElementById('chatbot-close-btn');
+            const container = document.getElementById('chatbot-container');
+            const form = document.getElementById('chatbot-input-form');
+            const userInput = document.getElementById('chatbot-user-text');
+            const messagesBox = document.getElementById('chatbot-messages-box');
+            const chatbotIcon = document.getElementById('chatbot-icon');
+
+            // Ouvrir/Fermer la fenêtre au clic sur le bouton flottant
+            if (toggleBtn && container) {
+                toggleBtn.addEventListener('click', () => {
+                    container.classList.toggle('d-none');
+                    if (container.classList.contains('d-none')) {
+                        chatbotIcon.className = 'bi bi-robot';
+                    } else {
+                        chatbotIcon.className = 'bi bi-chevron-down';
+                        userInput.focus();
+                        scrollToBottom();
+                    }
+                });
+            }
+
+            if (closeBtn && container) {
+                closeBtn.addEventListener('click', () => {
+                    container.classList.add('d-none');
+                    chatbotIcon.className = 'bi bi-robot';
+                });
+            }
+
+            // Gestion de l'envoi du message en AJAX vers le contrôleur Laravel
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const text = userInput.value.trim();
+                    if (!text) return;
+
+                    // Afficher le message de l'utilisateur à l'écran
+                    appendUserMessage(text);
+                    userInput.value = '';
+
+                    // Afficher l'indicateur de chargement de l'IA (clignotant)
+                    const loadingId = appendLoadingIndicator();
+                    scrollToBottom();
+
+                    // Récupérer l'ID de conversation s'il est déjà stocké localement dans la session
+                    const conversationId = localStorage.getItem('chatbot_conversation_id');
+
+                    const payload = {
+                        message: text,
+                        conversation_id: conversationId
+                    };
+
+                    const url = `{{ url('api/chatbot/message') }}`;
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => {
+                        if (!res.ok) throw new Error("Erreur réseau");
+                        return res.json();
+                    })
+                    .then(data => {
+                        // Supprimer l'indicateur de chargement
+                        removeLoadingIndicator(loadingId);
+
+                        // Enregistrer l'ID de conversation pour maintenir le contexte
+                        if (data.id_conversation) {
+                            localStorage.setItem('chatbot_conversation_id', data.id_conversation);
+                        }
+
+                        // Afficher la réponse de Gemini
+                        appendAiMessage(data.reply);
+                        scrollToBottom();
+                    })
+                    .catch(err => {
+                        removeLoadingIndicator(loadingId);
+                        appendAiMessage("Désolé, je rencontre des difficultés pour joindre nos serveurs à Brazzaville.");
+                        scrollToBottom();
+                    });
+                });
+            }
+
+            function appendUserMessage(text) {
+                const html = `
+                    <div class="d-flex justify-content-end mb-2">
+                        <!-- Ajout de white-space: pre-line; pour gérer proprement les retours à la ligne -->
+                        <div class="p-2.5 rounded-3 bg-cyan-soft text-white small" style="max-width: 80%; white-space: pre-line;">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+                messagesBox.insertAdjacentHTML('beforeend', html);
+            }
+
+            function appendAiMessage(text) {
+                const html = `
+                    <div class="d-flex gap-2 align-items-start mb-2">
+                        <div class="bg-cyan rounded-circle p-1 text-white text-center" style="width: 24px; height: 24px; background-color: #00B4D8; font-size: 0.7rem;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <!-- Ajout de white-space: pre-line; pour forcer l'affichage propre des paragraphes -->
+                        <div class="p-2.5 rounded-3 text-dark small" style="background-color: #E2E8F0; max-width: 80%; white-space: pre-line;">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+                messagesBox.insertAdjacentHTML('beforeend', html);
+            }
+
+            function appendLoadingIndicator() {
+                const id = 'loading-' + Date.now();
+                const html = `
+                    <div id="${id}" class="d-flex gap-2 align-items-start mb-2">
+                        <div class="bg-cyan rounded-circle p-1 text-white text-center" style="width: 24px; height: 24px; background-color: #00B4D8; font-size: 0.7rem;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div class="p-2.5 rounded-3 text-muted small" style="background-color: #E2E8F0;">
+                            <span class="spinner-grow spinner-grow-sm text-cyan" role="status" aria-hidden="true" style="color: #00B4D8;"></span>
+                            <span class="spinner-border-sm ms-1">L'assistant réfléchit...</span>
+                        </div>
+                    </div>
+                `;
+                messagesBox.insertAdjacentHTML('beforeend', html); // Corrigé : utilise la variable messagesBox existante
+                return id;
+            }
+
+            function removeLoadingIndicator(id) {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            }
+
+            // Expose l'indicateur pour qu'il soit nettoyable hors du scope local
+            window.removeLoadingIndicator = removeLoadingIndicator;
+
+            function scrollToBottom() {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            }
+        });
+    </script>
 </body>
 </html>

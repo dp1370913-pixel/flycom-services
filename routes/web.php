@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Public\VitrineController;
+use App\Http\Controllers\Public\ChatbotController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LeadController;
@@ -11,7 +12,6 @@ use App\Http\Controllers\Admin\AgendaController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\DocumentationController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -24,7 +24,13 @@ Route::get('/services/{slug}', [VitrineController::class, 'serviceDetail'])->nam
 Route::get('/portfolio', [VitrineController::class, 'portfolio'])->name('portfolio');
 Route::get('/faq', [VitrineController::class, 'faq'])->name('faq');
 Route::get('/about', [VitrineController::class, 'about'])->name('about');
+
+// Route d'affichage (GET) et de réception de formulaire de contact (POST - Flux Métier 1)
 Route::get('/contact', [VitrineController::class, 'contact'])->name('contact');
+Route::post('/contact', [VitrineController::class, 'storeContact'])->name('contact.store');
+
+// Route d'API pour le chatbot intelligent public (Module M7)
+Route::post('/api/chatbot/message', [ChatbotController::class, 'handleMessage'])->name('api.chatbot.message');
 
 /*
 |--------------------------------------------------------------------------
@@ -63,11 +69,12 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::post('/devis', [DevisController::class, 'store'])->name('admin.devis.store');
     Route::post('/devis/{id}/convert', [DevisController::class, 'convertToInvoice'])->name('admin.devis.convert');
     Route::get('/devis/{id}/print', [DevisController::class, 'printPDF'])->name('admin.devis.print');
+    Route::get('/devis/{id}/download', [DevisController::class, 'downloadPDF'])->name('admin.devis.download');
     Route::get('/devis/{id}/details', [DevisController::class, 'getDetails'])->name('admin.devis.details');
     Route::post('/devis/{id}/send-email', [DevisController::class, 'sendEmail'])->name('admin.devis.sendEmail');
     Route::post('/devis/{id}/update-status', [DevisController::class, 'updateStatus'])->name('admin.devis.updateStatus');
+    Route::post('/devis/{id}/duplicate', [DevisController::class, 'duplicate'])->name('admin.devis.duplicate');
     Route::delete('/devis/{id}/delete', [DevisController::class, 'delete'])->name('admin.devis.delete');
-
 
     // Agenda & Relances (Module M3)
     Route::get('/agenda', [AgendaController::class, 'index'])->name('admin.agenda.index');
@@ -83,11 +90,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::post('/settings/update-entreprise', [SettingsController::class, 'updateEntreprise'])->name('admin.settings.updateEntreprise');
     Route::post('/settings/update-fiscal', [SettingsController::class, 'updateFiscal'])->name('admin.settings.updateFiscal');
     Route::post('/settings/update-ia', [SettingsController::class, 'updateIA'])->name('admin.settings.updateIA');
+    Route::post('/settings/update-web-ia', [SettingsController::class, 'updateWebIA'])->name('admin.settings.updateWebIA'); // Nouvelle route d'IA Web
     Route::post('/settings/users', [SettingsController::class, 'storeUser'])->name('admin.settings.storeUser');
 
     // Documentation CRM (Module M3)
     Route::get('/documentation', [DocumentationController::class, 'index'])->name('admin.documentation.index');
-
-    
 
 });

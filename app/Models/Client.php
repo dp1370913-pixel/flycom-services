@@ -5,6 +5,42 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id_client
+ * @property string $nom
+ * @property string $prenom
+ * @property string $telephone
+ * @property string|null $email
+ * @property string|null $entreprise
+ * @property string|null $adresse
+ * @property string $type_contact
+ * @property string|null $notes
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Conversation> $conversations
+ * @property-read int|null $conversations_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Devis> $devis
+ * @property-read int|null $devis_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Interaction> $interactions
+ * @property-read int|null $interactions_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Lead> $leads
+ * @property-read int|null $leads_count
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereAdresse($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereEntreprise($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereIdClient($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereNom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client wherePrenom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereTelephone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereTypeContact($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Client whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class Client extends Model
 {
     protected $table = 'clients';

@@ -5,7 +5,7 @@
 @section('content')
 <div class="mb-4">
     <h1 class="h3 fw-extrabold text-navy mb-1">Paramètres</h1>
-    <p class="text-muted fs-8">Configuration globale du système Flycom CRM.</p>
+    <p class="text-muted small mb-0">Configuration globale du système Flycom CRM.</p>
 </div>
 
 <!-- Zone de notification de succès -->
@@ -15,23 +15,31 @@
     </div>
 @endif
 
-<!-- BARRE DE COMMUTATION DES 5 SOUS-ONGLETS (Image 19) -->
+<!-- Zone de notification d'erreur (Nouveau : Indispensable pour l'échec de lecture PDF) -->
+@if(session('error'))
+    <div class="alert alert-danger fs-8 py-2.5 rounded-3 mb-4 border-0">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+    </div>
+@endif
+
+<!-- BARRE DE COMMUTATION DES 6 SOUS-ONGLETS -->
 <div class="d-flex flex-wrap gap-2 mb-4">
     <button class="btn btn-sub-tab active" data-tab="entreprise"><i class="bi bi-building me-1"></i> Entreprise</button>
     <button class="btn btn-sub-tab" data-tab="fiscal"><i class="bi bi-percent me-1"></i> Fiscal &amp; TVA</button>
     <button class="btn btn-sub-tab" data-tab="ia"><i class="bi bi-whatsapp me-1"></i> IA WhatsApp</button>
+    <button class="btn btn-sub-tab" data-tab="ia-web"><i class="bi bi-robot me-1"></i> IA Site Web</button>
     <button class="btn btn-sub-tab" data-tab="journal"><i class="bi bi-journal-activity me-1"></i> Journal activité</button>
     <button class="btn btn-sub-tab" data-tab="utilisateurs"><i class="bi bi-people me-1"></i> Utilisateurs</button>
 </div>
 
 <!-- ========================================== -->
-<!-- SOUS-ONGLET 1 : ENTREPRISE (Image 19)      -->
+<!-- SOUS-ONGLET 1 : ENTREPRISE                 -->
 <!-- ========================================== -->
 <div class="settings-tab-pane active" id="tab-entreprise">
     <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-info-circle-fill text-cyan me-2"></i> Informations entreprise</h2>
         
-        <form action="#" method="POST" class="row g-3 fs-8 text-start">
+        <form action="{{ route('admin.settings.updateEntreprise') }}" method="POST" class="row g-3 fs-8 text-start">
             @csrf
             <div class="col-md-6">
                 <label class="form-label fw-bold text-navy text-uppercase">Nom de l'entreprise</label>
@@ -50,7 +58,7 @@
                 <input type="text" name="adresse" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['adresse_entreprise'] ?? '22, Avenue de Brazza — La Glacière, Brazzaville' }}" required>
             </div>
             <div class="col-12 mt-4 text-end">
-                <button type="button" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
             </div>
         </form>
     </div>
@@ -72,7 +80,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- SOUS-ONGLET 2 : FISCAL & TVA (Image 20)     -->
+<!-- SOUS-ONGLET 2 : FISCAL & TVA               -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-fiscal">
     <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
@@ -114,12 +122,8 @@
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL : IA WHATSAPP (Image 21)             -->
+<!-- SOUS-ONGLET 3 : IA WHATSAPP                -->
 <!-- ========================================== -->
-<div class="modal-body p-0 d-none" id="iaTab">
-    <!-- Intégré dans l'onglet IA ci-dessous -->
-</div>
-
 <div class="settings-tab-pane" id="tab-ia">
     <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-robot text-cyan me-2"></i> Agent IA WhatsApp</h2>
@@ -127,14 +131,14 @@
         <form action="{{ route('admin.settings.updateIA') }}" method="POST" class="row g-3 fs-8 text-start">
             @csrf
             
-            <!-- Commutateur IA On/Off (Image 21) -->
+            <!-- Commutateur IA On/Off -->
             <div class="col-12">
                 <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between">
                     <div>
                         <strong class="text-navy d-block fs-8 mb-1">Activer l'agent IA</strong>
                         <span class="text-muted fs-10 d-block">Réponse automatique aux messages WhatsApp entrants</span>
                     </div>
-                    <input class="form-check-input me-1" type="checkbox" name="whatsapp_ia_active" id="iaActive" value="true" checked style="width: 38px; height: 18px; cursor:pointer;">
+                    <input class="form-check-input me-1" type="checkbox" name="whatsapp_ia_active" id="iaActive" value="true" {{ ($configs['whatsapp_ia_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
                 </div>
             </div>
 
@@ -166,7 +170,78 @@
 </div>
 
 <!-- ========================================== -->
-<!-- SOUS-ONGLET 4 : JOURNAL D'ACTIVITÉ (Image 22)-->
+<!-- SOUS-ONGLET 3.5 : IA SITE WEB (Avec Upload PDF et multipart/form-data) -->
+<!-- ========================================== -->
+<div class="settings-tab-pane" id="tab-ia-web">
+    <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
+        <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-robot text-cyan me-2"></i> Assistant IA Site Web (Vitrine)</h2>
+        
+        <!-- Ajout de l'enctype multipart/form-data indispensable pour téléverser un fichier PDF (Image 21) -->
+        <form action="{{ route('admin.settings.updateWebIA') }}" method="POST" enctype="multipart/form-data" class="row g-3 fs-8 text-start">
+            @csrf
+            
+            <!-- Commutateur IA On/Off -->
+            <div class="col-12">
+                <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between">
+                    <div>
+                        <strong class="text-navy d-block fs-8 mb-1">Activer l'assistant virtuel</strong>
+                        <span class="text-muted fs-10 d-block">Réponse automatique aux internautes du site vitrine</span>
+                    </div>
+                    <input class="form-check-input me-1" type="checkbox" name="chatbot_active" id="webIaActive" value="true" {{ ($configs['chatbot_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
+                </div>
+            </div>
+
+            <!-- Choix du modèle d'IA -->
+            <div class="col-12 mt-4">
+                <label for="gemini_model" class="form-label fw-bold text-navy text-uppercase">Modèle d'Intelligence Artificielle</label>
+                <select name="gemini_model" id="gemini_model" class="form-select bg-light border-light py-2 fs-8" required>
+                    <option value="gemini-1.5-flash" {{ ($configs['gemini_model'] ?? '') === 'gemini-1.5-flash' ? 'selected' : '' }}>Gemini 1.5 Flash (Ancienne génération)</option>
+                    <option value="gemini-2.5-flash" {{ ($configs['gemini_model'] ?? '') === 'gemini-2.5-flash' ? 'selected' : '' }}>Gemini 2.5 Flash (Recommandé - Stable)</option>
+                    <option value="gemini-3.5-flash" {{ ($configs['gemini_model'] ?? 'gemini-3.5-flash') === 'gemini-3.5-flash' ? 'selected' : '' }}>Gemini 3.5 Flash (Dernière génération - Ultra-rapide)</option>
+                </select>
+            </div>
+
+            <!-- Consignes système (System Prompt) -->
+            <div class="col-12 mt-4">
+                <label for="chatbot_system_prompt" class="form-label fw-bold text-navy text-uppercase">Consignes de comportement (Prompt)</label>
+                <textarea name="chatbot_system_prompt" id="chatbot_system_prompt" class="form-control bg-light border-light py-2 fs-8 text-muted" rows="5" required>{{ $configs['chatbot_system_prompt'] ?? "Tu es l'assistant virtuel de Flycom Services à Brazzaville. Reste courtois, professionnel et très concis (2-3 phrases maximum)." }}</textarea>
+                <small class="text-muted fs-10 mt-1 d-block">Détermine l'identité, le ton et les limites de comportement de votre IA d'accueil.</small>
+            </div>
+
+            <!-- Base de connaissances textuelle (Knowledge Base) -->
+            <div class="col-12 mt-4">
+                <label for="chatbot_knowledge_base" class="form-label fw-bold text-navy text-uppercase">Base de connaissances complémentaire</label>
+                <textarea name="chatbot_knowledge_base" id="chatbot_knowledge_base" class="form-control bg-light border-light py-2 fs-8 text-muted" rows="6" placeholder="Exemple :
+- Nos bureaux sont situés à La Glacière, Brazzaville, en face de la pharmacie.
+- Nous acceptons les règlements par Airtel Money et MTN Mobile Money.
+- Le gérant est M. Budry Nakouzebi, joignable directement au +242 06 628 57 41.">{{ $configs['chatbot_knowledge_base'] ?? '' }}</textarea>
+                <small class="text-muted fs-10 mt-1 d-block">Ajoutez ici toutes les informations spécifiques à votre entreprise (horaires, coordonnées, politiques de prix, détails de contact) dont l'IA aura besoin pour répondre.</small>
+            </div>
+
+            <!-- NOUVEAU : Téléchargement de document PDF de connaissances (Image 21) -->
+            <div class="col-12 mt-4">
+                <label for="chatbot_knowledge_pdf" class="form-label fw-bold text-navy text-uppercase">Document PDF de connaissances (Complémentaire)</label>
+                <input type="file" name="chatbot_knowledge_pdf" id="chatbot_knowledge_pdf" class="form-control bg-light border-light py-2 fs-8" accept=".pdf" style="box-shadow: none !important;">
+                <small class="text-muted fs-10 mt-1 d-block">Téléversez un fichier PDF (tarifs détaillés, catalogue de produits, conditions générales, etc.) pour alimenter automatiquement la base de connaissances.</small>
+                
+                <!-- Badge d'affichage du fichier actif si déjà enregistré -->
+                @if(isset($configs['chatbot_knowledge_pdf_filename']))
+                    <div class="alert alert-info py-2 px-3 rounded-3 mt-3 d-flex align-items-center gap-2 border-0 fs-10 fw-semibold text-info" style="background-color: #EFF6FF; width: fit-content;">
+                        <i class="bi bi-file-earmark-pdf-fill fs-5"></i> 
+                        <span>Fichier actif analysé : <strong>{{ $configs['chatbot_knowledge_pdf_filename'] }}</strong></span>
+                    </div>
+                @endif
+            </div>
+
+            <div class="col-12 mt-4 text-end">
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- SOUS-ONGLET 4 : JOURNAL D'ACTIVITÉ         -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-journal">
     <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
@@ -211,7 +286,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- SOUS-ONGLET 5 : UTILISATEURS (Image 23)    -->
+<!-- SOUS-ONGLET 5 : UTILISATEURS               -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-utilisateurs">
     <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
@@ -220,7 +295,6 @@
                 <h2 class="h6 fw-extrabold text-navy mb-1"><i class="bi bi-people-fill text-cyan me-2"></i> Gestion des utilisateurs</h2>
                 <p class="text-muted fs-9 mb-0">Déclarez les accès et comptes de garde de vos collaborateurs.</p>
             </div>
-            <!-- Bouton d'ajout d'utilisateurs (Image 23) -->
             <button class="btn rounded-3 px-3 py-2 text-white fw-bold fs-8" style="background:#0D1B4B; border:none;" data-bs-toggle="modal" data-bs-target="#newUserModal">
                 <i class="bi bi-plus-lg me-1"></i> Ajouter un utilisateur
             </button>
@@ -248,7 +322,6 @@
                         </td>
                         <td class="text-muted">{{ $user->email }}</td>
                         <td>
-                            <!-- Affichage du rôle du MLD (Admin, Commercial, System_Bot, Lecture) -->
                             <span class="badge @if($user->role === 'Admin') bg-primary-soft text-primary @elseif($user->role === 'System_Bot') bg-info-soft text-info @else bg-warning-soft text-warning @endif px-2 py-1 rounded-3 fw-bold fs-10">
                                 {{ $user->role }}
                             </span>
@@ -268,7 +341,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL : AJOUTER UN UTILISATEUR (Image 1)   -->
+<!-- MODAL : AJOUTER UN UTILISATEUR             -->
 <!-- ========================================== -->
 <div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -315,7 +388,6 @@
                 </div>
                 <div class="modal-footer border-top border-light px-4 py-3 d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                    <!-- Bouton d'ajout unifié -->
                     <button type="submit" class="btn rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none; width: auto !important;">Ajouter</button>
                 </div>
             </form>
@@ -372,7 +444,7 @@
     }
 </style>
 
-<!-- SCRIPTS DE COMMUTATION INTERACTIVE DES 5 SOUS-ONGLETS SANS RECHARGEMENT DE PAGE (UX) -->
+<!-- SCRIPTS DE COMMUTATION INTERACTIVE DES 6 SOUS-ONGLETS SANS RECHARGEMENT DE PAGE (UX) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const tabButtons = document.querySelectorAll('.btn-sub-tab');

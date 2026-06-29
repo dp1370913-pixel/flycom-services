@@ -6,6 +6,46 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * @property int $id_devis
+ * @property int $id_client
+ * @property int|null $id_lead
+ * @property string $numero
+ * @property string $type
+ * @property string $date_emission
+ * @property string $date_expiration
+ * @property numeric $montant_ht
+ * @property numeric $tva
+ * @property numeric $montant_ttc
+ * @property string $statut
+ * @property string $statut_paiement
+ * @property string|null $fichier_pdf
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Client $client
+ * @property-read \App\Models\Lead|null $lead
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Service> $services
+ * @property-read int|null $services_count
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereDateEmission($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereDateExpiration($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereFichierPdf($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereIdClient($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereIdDevis($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereIdLead($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereMontantHt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereMontantTtc($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereNumero($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereStatut($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereStatutPaiement($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereTva($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Devis whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class Devis extends Model
 {
     protected $table = 'devis';

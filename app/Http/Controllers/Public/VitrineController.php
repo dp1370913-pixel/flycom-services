@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Service;
+use App\Models\Client;
+use App\Models\Lead;
+use App\Models\User;
+use App\Models\Interaction;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class VitrineController extends Controller
 {
@@ -46,6 +51,86 @@ class VitrineController extends Controller
     public function contact()
     {
         return view('public.contact');
+    }
+
+    // 6.1 Traiter la soumission du formulaire de contact (Flux Métier 1 - CRM)
+    public function storeContact(Request $request)
+    {
+        // Validation des entrées utilisateur du formulaire public (M2)
+        $validated = $request->validate([
+            'nom'        => ['required', 'string', 'max:100'],
+            'prenom'     => ['required', 'string', 'max:100'],
+            'telephone'  => ['required', 'string', 'max:50'],
+            'email'      => ['nullable', 'email', 'max:150'],
+            'entreprise' => ['nullable', 'string', 'max:150'],
+            'adresse'    => ['nullable', 'string'],
+            'message'    => ['required', 'string'],
+            'id_service' => ['nullable', 'string'] // Reçoit la valeur textuelle : 'reseau', 'videosurveillance', etc.
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            // RÈGLE MÉTIER (MLD) : Logique UPSERT stricte sur le numéro de téléphone unique du client
+            $client = Client::updateOrCreate(
+                ['telephone' => $validated['telephone']],
+                [
+                    'nom'          => $validated['nom'],
+                    'prenom'       => $validated['prenom'],
+                    'email'        => $validated['email'],
+                    'entreprise'   => $validated['entreprise'] ?? null,
+                    'adresse'      => $validated['adresse'] ?? null,
+                    'type_contact' => 'Prospect' // Forcer l'état prospect initial (MLD)
+                ]
+            );
+
+            // RÈGLE MÉTIER : Création du Lead qualifié
+            $lead = Lead::create([
+                'id_client'       => $client->id_client,
+                'id_conversation' => null, // Formulaire classique non issu de l'IA
+                'message_origine' => $validated['message'],
+                'statut'          => 'Nouveau', // Place l'opportunité dans la colonne 'Nouveau' du Kanban
+                'priorite'        => 'Normale',
+                'source'          => 'Site_web'
+            ]);
+
+            // CONVERSION / MAPPAGE : Traduit la clé textuelle du select en id_service numérique de la base de données
+            $serviceNameMap = [
+                'reseau'           => 'Réseaux Informatiques',
+                'videosurveillance'=> 'Vidéosurveillance',
+                'acces'            => 'Contrôle d\'accès',
+                'barbele'          => 'Barbelé Électrique',
+                'solaire'          => 'Panneaux Solaires',
+                'climatisation'    => 'Climatisation',
+                'location'         => 'Location de Véhicules',
+                'sonorisation'     => 'Location Sonorisation'
+            ];
+
+            if (!empty($validated['id_service'])) {
+                $mappedName = $serviceNameMap[$validated['id_service']] ?? null;
+                if ($mappedName) {
+                    $service = Service::where('nom_service', $mappedName)->first();
+                    if ($service) {
+                        // Liaison associative (lead_services)
+                        $lead->services()->attach($service->id_service);
+                    }
+                }
+            }
+
+            // Récupérer le compte robot système pour journaliser l'interaction
+            $botUser = User::where('role', 'System_Bot')->first();
+            $idUser = $botUser ? $botUser->id_user : 1; // Fallback sur l'Admin de garde si non créé
+
+            // RÈGLE MÉTIER : Journaliser le contact dans l'historique client
+            Interaction::create([
+                'id_client'  => $client->id_client,
+                'id_user'    => $idUser,
+                'id_lead'    => $lead->id_lead,
+                'type_canal' => 'Chatbot', // 'Chatbot' correspond au canal de log configuré pour vos paramètres
+                'date'       => now(),
+                'note'       => "Formulaire de contact soumis par le prospect. Message d'origine : " . $validated['message']
+            ]);
+        });
+
+        return redirect()->route('contact')->with('success', 'Votre demande de contact a bien été reçue. Un conseiller de Flycom Services vous contactera rapidement.');
     }
 
     // 7. Fiche Technique dynamique d'un service (Image 2 - Fusion MySQL & Métadonnées)

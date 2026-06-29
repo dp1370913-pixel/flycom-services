@@ -1,1023 +1,1161 @@
 @extends('layouts.admin')
 
-@section('title', 'Gestion de la Facturation | Flycom Services CRM')
+@section('title', 'Gestion des Devis & Factures | Flycom Services')
 
 @section('content')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* Empêche le curseur de sélection de s'afficher sur les textes statiques (Caret Browsing protection) */
+    h1, h2, h3, h4, h5, h6, th, td, span, p, label {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+    
+    /* Style interactif pour le survol des lignes de devis */
+    .devis-row {
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out, opacity 0.4s ease-out;
+    }
+    .devis-row:hover {
+        background-color: #F8FAFC !important;
+    }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
-    <div>
-        <h1 class="h3 fw-extrabold text-navy mb-1">Devis &amp; Factures</h1>
-        <p class="text-muted fs-8 mb-0">{{ $devisList->count() }} documents enregistrés</p>
+    /* Style du bouton d'envoi d'e-mail personnalisé (Image 2) */
+    .btn-outline-cyan {
+        border: 1px solid #00B4D8 !important;
+        color: #00B4D8 !important;
+        background-color: transparent !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-outline-cyan:hover {
+        background-color: #00B4D8 !important;
+        color: #fff !important;
+    }
+
+    /* Styles des toasts de notification (Fidèle à vos captures d'écran) */
+    .toast-custom-success {
+        background-color: #ECFDF5 !important;
+        border: 1px solid #10B981 !important;
+        color: #064E3B !important;
+    }
+    .toast-custom-info {
+        background-color: #EFF6FF !important;
+        border: 1px solid #3B82F6 !important;
+        color: #1E3A8A !important;
+    }
+
+    /* Nettoyage du modal pour supprimer la double scrollbar verticale */
+    #detailsDevisModal .modal-body {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+    
+    /* Force l'affichage du menu de statut au-dessus du bouton (Dropup strict) */
+    #detail-status-menu {
+        top: auto !important;
+        bottom: 100% !important;
+        margin-top: 0 !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Styles pour conformer le menu déroulant à l'image du prototype */
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    /* 
+       RÉSOLUTION DE LA COUPURE DU MENU CONTEXTUEL (Image 1 - Actions) :
+       Permet au menu déroulant de déborder proprement en dehors du tableau sans être rogné.
+    */
+    .card, .table-responsive {
+        overflow: visible !important;
+    }
+
+    /* Aligne parfaitement le menu déroulant des trois points sur la bordure droite */
+    .dropdown-menu-end {
+        right: 0 !important;
+        left: auto !important;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    
+    <!-- Zone de notification Toast flottante (Vidéo) -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;"></div>
+
+    <!-- En-tête de la page avec indicateurs KPI Dynamiques (Image 1) -->
+    @php
+        $totalAcceptes = $devisList->where('statut', 'Accepte')->sum('montant_ttc');
+        $totalEnAttente = $devisList->where('statut', 'En_attente')->sum('montant_ttc');
+        $countDocuments = $devisList->count();
+    @endphp
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-navy mb-1" style="color: #0D1B4B; font-family: 'Segoe UI', sans-serif;">Devis &amp; Factures</h1>
+            <p class="text-muted small mb-0 fw-semibold">
+                <span id="kpi-count">{{ $countDocuments }}</span> documents · 
+                <span id="kpi-acceptes" class="text-success">{{ number_format($totalAcceptes, 0, ',', ' ') }} FCFA</span> acceptés · 
+                <span id="kpi-attente" class="text-warning">{{ number_format($totalEnAttente, 0, ',', ' ') }} FCFA</span> en attente
+            </p>
+        </div>
+        <button class="btn btn-cyan rounded-3 px-4 py-2 fw-bold text-white shadow-sm" style="background-color: #00B4D8; border: none;" data-bs-toggle="modal" data-bs-target="#createDevisModal">
+            <i class="bi bi-file-earmark-plus-fill me-2"></i> Nouveau devis
+        </button>
     </div>
-    <div class="mt-3 mt-md-0">
-        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn" data-bs-toggle="modal" data-bs-target="#newDevisModal"><i class="bi bi-file-earmark-plus me-1"></i> Nouveau devis</button>
+
+    <!-- Barre de recherche et filtres de l'Image 1 -->
+    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: #fff;">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6 position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" id="devis-search-input" class="form-control bg-light border-0" placeholder="Rechercher un devis...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="devis-status-filter" class="form-select bg-light border-0">
+                        <option value="all">Tous statuts</option>
+                        <option value="En_attente">En attente</option>
+                        <option value="Accepte">Accepté</option>
+                        <option value="Refuse">Refusé</option>
+                        <option value="Expire">Expiré</option>
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Zone de notification de succès temporaire -->
-<div id="actionAlert" class="alert alert-success fs-8 py-2.5 rounded-3 d-none mb-4 border-0">
-    <!-- Injecté par JS -->
-</div>
-
-<!-- CONTEXTE DE NOTIFICATION TOAST FLOTTANT EN BAS À DROITE -->
-<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
-
-<!-- VUE TABLEAU DE FACTURATION (Avec support d'unstacking responsive de l'image 2) -->
-<div class="card border-0 shadow-sm p-4 bg-white rounded-4">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 fs-8 responsive-table-to-cards">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col">Numéro</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Émission</th>
-                    <th scope="col">Expiration</th>
-                    <th scope="col">Montant TTC</th>
-                    <th scope="col">Statut</th>
-                    <th scope="col">Paiement</th>
-                    <th scope="col" class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($devisList as $doc)
-                
-                <!-- Pré-calcul des classes de pastilles en PHP pur (Élimine le bug de compilation !) -->
-                @php
-                    // Pastille de Statut de validation
-                    $statusClass = 'bg-danger-soft text-danger';
-                    if ($doc->statut === 'Accepte') {
-                        $statusClass = 'bg-success-soft text-success';
-                    } elseif ($doc->statut === 'En_attente') {
-                        $statusClass = 'bg-warning-soft text-warning';
-                    }
-
-                    // Pastille de Statut de paiement
-                    $paymentClass = 'bg-danger-soft text-danger';
-                    if ($doc->statut_paiement === 'Solde') {
-                        $paymentClass = 'bg-success-soft text-success';
-                    } elseif ($doc->statut_paiement === 'Acompte_recu') {
-                        $paymentClass = 'bg-info-soft text-info';
-                    }
-                @endphp
-
-                <tr id="devisRow{{ $doc->id_devis }}">
-                    <!-- Chaque cellule possède des attributs de liaison explicites pour l'AJAX -->
-                    <td data-label="Numéro" class="fw-bold text-navy btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}"><i class="bi bi-file-earmark-text text-muted me-2"></i>{{ $doc->numero }}</td>
-                    <td data-label="Client" class="fw-bold btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ $doc->client->prenom }} {{ $doc->client->nom }}</td>
-                    <td data-label="Type" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
-                        <span class="badge {{ $doc->type === 'Devis' ? 'bg-primary-soft text-primary' : 'bg-info-soft text-info' }} px-2 py-1 rounded-3">
-                            {{ str_replace('_', ' ', $doc->type) }}
-                        </span>
-                    </td>
-                    <td data-label="Émission" class="text-muted btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ \Carbon\Carbon::parse($doc->date_emission)->format('d/m/Y') }}</td>
-                    <td data-label="Expiration" class="text-muted btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ \Carbon\Carbon::parse($doc->date_expiration)->format('d/m/Y') }}</td>
-                    <td data-label="Montant TTC" class="fw-bold text-navy btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">{{ number_format($doc->montant_ttc, 0, ',', ' ') }} FCFA</td>
-                    <td data-label="Statut" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
-                        <span class="badge {{ $statusClass }} px-2 py-1 rounded-3">
-                            {{ str_replace('_', ' ', $doc->statut) }}
-                        </span>
-                    </td>
-                    <td data-label="Paiement" class="btn-view-devis" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}">
-                        <span class="badge {{ $paymentClass }} px-2 py-1 rounded-3">
-                            {{ str_replace('_', ' ', $doc->statut_paiement) }}
-                        </span>
-                    </td>
-                    <td class="text-end">
-                        <div class="dropdown">
-                            <button class="btn btn-light btn-sm border-0 rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end fs-8">
-                                <li><a class="dropdown-item btn-view-devis" href="#" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-id="{{ $doc->id_devis }}"><i class="bi bi-eye me-2"></i> Voir le détail</a></li>
-                                <li><button type="button" class="dropdown-item btn-download-pdf-quick" data-id="{{ $doc->id_devis }}"><i class="bi bi-printer me-2"></i> Télécharger PDF</button></li>
-                                <li class="dropdown-submenu">
-                                    <a class="dropdown-item dropdown-toggle" href="#"><i class="bi bi-arrow-left-right me-2"></i> Changer le statut</a>
-                                    <ul class="dropdown-menu fs-8 shadow-sm">
-                                        <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="En_attente"><i class="bi bi-circle-fill me-2 status-dot-orange"></i> En attente</button></li>
-                                        <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Accepte"><i class="bi bi-circle-fill me-2 status-dot-green"></i> Accepté</button></li>
-                                        <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Refuse"><i class="bi bi-circle-fill me-2 status-dot-red"></i> Refusé</button></li>
-                                        <li><button type="button" class="dropdown-item btn-quick-status" data-id="{{ $doc->id_devis }}" data-status="Expire"><i class="bi bi-circle-fill me-2 status-dot-gray"></i> Expiré</button></li>
-                                    </ul>
-                                </li>
-                                @if($doc->type === 'Devis')
-                                <li>
-                                    <form action="{{ route('admin.devis.convert', $doc->id_devis) }}" method="POST" class="mb-0">
-                                        @csrf
-                                        <button type="submit" class="dropdown-item text-success"><i class="bi bi-arrow-left-right me-2"></i> Convertir en facture proforma</button>
-                                    </form>
-                                </li>
-                                @endif
-                                <li><hr class="dropdown-divider"></li>
-                                <li><button type="button" class="dropdown-item text-danger btn-delete-devis" data-id="{{ $doc->id_devis }}"><i class="bi bi-trash me-2"></i> Supprimer</button></li>
-                            </ul>
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <!-- Réintégration réglementaire de empty pour résoudre l'Internal Server Error -->
-                <tr>
-                    <td colspan="9" class="text-center text-muted py-5 fs-8">
-                        <i class="bi bi-file-earmark-x d-block mb-2" style="font-size:2rem;"></i>
-                        Aucun document commercial enregistré.
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- ========================================== -->
-<!-- MODAL 1 : VOIR LE DÉTAIL D'UN DEVIS (Image 2) -->
-<!-- ========================================== -->
-<div class="modal fade" id="devisDetailsModal" tabindex="-1" aria-labelledby="devisDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow-lg bg-white text-navy">
-            <div class="modal-header border-0 px-4 pt-4 pb-0">
-                <div class="d-flex align-items-center gap-2">
-                    <h5 class="modal-title fw-extrabold text-navy fs-5" id="detailDevisNum">DEV-2026-0042</h5>
-                    <!-- Badge de statut en haut conforme -->
-                    <span class="badge" id="detailHeaderStatus" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 50px;">En attente</span>
-                </div>
-                <button type="button" class="btn-close shadow-none align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="px-4"><small class="text-muted fs-8" id="detailDevisClientMeta">Stéphane MOUTOU · Devis</small></div>
-            
-            <div class="modal-body px-4 py-3 fs-8">
-                
-                <!-- Grille bicolore des métadonnées -->
-                <div class="row g-2 mb-4 text-start">
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Émission</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailEmission">24/05/2026</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Expiration</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailExpiration">23/06/2026</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Statut</span>
-                            <span class="fw-bold d-block mt-1" id="detailStatut">En attente</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Paiement</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailPaiement">Non payé</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lignes d'articles facturées -->
-                <h3 class="h6 fw-extrabold text-navy mb-3">Détail des lignes</h3>
-                <div class="table-responsive rounded-3 border border-light bg-white mb-4">
-                    <table class="table align-middle mb-0 fs-8" id="detailLinesTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col" style="width: 50%;">Service</th>
-                                <th scope="col" class="text-center" style="width: 10%;">Qté</th>
-                                <th scope="col" class="text-end" style="width: 20%;">Prix unit.</th>
-                                <th scope="col" class="text-end" style="width: 20%;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Injecté par AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Récapitulatif financier -->
-                <div class="row justify-content-end text-end mb-2">
-                    <div class="col-md-5">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted fw-semibold">Total HT</span>
-                            <span class="fw-bold text-navy" id="detailTotalHt">0 FCFA</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-top border-light pt-2" style="font-size: 1.1rem;">
-                            <span class="fw-bold text-navy">Total TTC</span>
-                            <span class="fw-extrabold text-navy" id="detailTotalTtc">0 FCFA</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            
-            <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
-                <!-- Actions de Fiches -->
-                <button type="button" id="btnPrintLink" class="btn text-white fw-bold px-4 py-2.5" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem;"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Télécharger PDF</button>
-                
-                <!-- Changement de modal 100% natif en HTML (Élimine le bug de fermeture de JS !) -->
-                <button type="button" id="btnOpenEmailModal" class="btn btn-outline-cyan fw-bold px-4 py-2.5" style="border-radius: 8px; font-size:0.8rem; border-color: #00D2F4; color: #00D2F4;"><i class="bi bi-envelope-fill me-1"></i> Envoyer par email</button>
-                <div class="flex-grow-1"></div>
-                
-                <!-- Sélecteur rapide de statut -->
-                <div class="dropup">
-                    <button class="btn btn-outline-secondary fw-semibold px-4 py-2.5 dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius: 8px; font-size:0.8rem;">Modifier le statut</button>
-                    <ul class="dropdown-menu fs-8">
-                        <li><button type="button" class="dropdown-item text-warning btn-modal-status-update" data-status="En_attente"><i class="bi bi-circle-fill me-2 fs-10 status-dot-orange"></i> En attente</button></li>
-                        <li><button type="button" class="dropdown-item text-success btn-modal-status-update" data-status="Accepte"><i class="bi bi-circle-fill me-2 fs-10 status-dot-green"></i> Accepté</button></li>
-                        <li><button type="button" class="dropdown-item text-danger btn-modal-status-update" data-status="Refuse"><i class="bi bi-circle-fill me-2 fs-10 status-dot-red"></i> Refusé</button></li>
-                        <li><button type="button" class="dropdown-item text-secondary btn-modal-status-update" data-status="Expire"><i class="bi bi-circle-fill me-2 status-dot-gray"></i> Expiré</button></li>
-                    </ul>
-                </div>
-                <button type="button" id="btnDeleteModal" class="btn btn-outline-danger fw-semibold px-4 py-2.5" style="border-radius: 8px; font-size:0.8rem;"><i class="bi bi-trash me-1"></i> Supprimer</button>
-            </div>
+    <!-- Tableau principal des documents (Image 1 - Proportions recalibrées à 100% pour supprimer le scroll gris) -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" style="background-color: #fff;">
+                <thead class="table-light">
+                    <tr class="text-muted" style="font-size: 0.85rem; font-weight: 700;">
+                        <th class="ps-4" style="width: 12%;">Numéro</th>
+                        <th style="width: 20%;">Client</th>
+                        <th style="width: 10%;">Type</th>
+                        <th style="width: 11%;">Émission</th>
+                        <th style="width: 11%;">Expiration</th>
+                        <th style="width: 14%;">Montant TTC</th>
+                        <th style="width: 10%;">Statut</th>
+                        <th style="width: 10%;">Paiement</th>
+                        <th class="text-end pe-4" style="width: 2%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="devis-tbody" style="font-size: 0.9rem;">
+                    @forelse($devisList as $devis)
+                    <tr class="devis-row" id="row-devis-{{ $devis->id_devis }}" data-id="{{ $devis->id_devis }}" data-client="{{ strtolower($devis->client->prenom . ' ' . $devis->client->nom) }}" data-numero="{{ strtolower($devis->numero) }}" data-statut="{{ $devis->statut }}">
+                        <td class="ps-4 fw-bold text-navy">
+                            <i class="bi bi-file-earmark-text text-muted me-2"></i>{{ $devis->numero }}
+                        </td>
+                        <td class="fw-semibold text-dark">{{ $devis->client->prenom }} {{ $devis->client->nom }}</td>
+                        <td>
+                            @if($devis->type === 'Devis')
+                                <span class="badge rounded-pill px-3 py-1" style="background-color: #E0F2FE; color: #0284C7; font-size: 0.75rem;">Devis</span>
+                            @else
+                                <span class="badge rounded-pill px-3 py-1" style="background-color: #ECFDF5; color: #059669; font-size: 0.75rem;">Facture proforma</span>
+                            @endif
+                        </td>
+                        <td class="text-muted">{{ \Carbon\Carbon::parse($devis->date_emission)->format('d/m/Y') }}</td>
+                        <td class="text-muted">{{ \Carbon\Carbon::parse($devis->date_expiration)->format('d/m/Y') }}</td>
+                        <td class="fw-bold text-navy">{{ number_format($devis->montant_ttc, 0, ',', ' ') }} FCFA</td>
+                        <td>
+                            @if($devis->statut === 'En_attente')
+                                <span class="badge rounded-pill bg-warning-subtle text-warning px-2.5 py-1">En attente</span>
+                            @elseif($devis->statut === 'Accepte')
+                                <span class="badge rounded-pill bg-success-subtle text-success px-2.5 py-1">Accepté</span>
+                            @elseif($devis->statut === 'Refuse')
+                                <span class="badge rounded-pill bg-danger-subtle text-danger px-2.5 py-1">Refusé</span>
+                            @else
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary px-2.5 py-1">Expiré</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($devis->statut_paiement === 'Non_paye')
+                                <span class="text-danger fw-semibold" style="font-size: 0.8rem;">Non payé</span>
+                            @elseif($devis->statut_paiement === 'Acompte_recu')
+                                <span class="text-warning fw-semibold" style="font-size: 0.8rem;">Acompte reçu</span>
+                            @else
+                                <span class="text-success fw-semibold" style="font-size: 0.8rem;">Solde</span>
+                            @endif
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm rounded-circle shadow-none dropdown-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3 py-2" style="font-size: 0.85rem; z-index: 1050;">
+                                    <li>
+                                        <button class="dropdown-item py-2 btn-action-view" data-id="{{ $devis->id_devis }}">
+                                            <i class="bi bi-eye text-muted me-2"></i> Voir le détail
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" href="{{ route('admin.devis.download', $devis->id_devis) }}">
+                                            <i class="bi bi-download text-muted me-2"></i> Télécharger PDF
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item py-2 text-primary btn-action-convert" data-id="{{ $devis->id_devis }}" data-type="{{ $devis->type }}">
+                                            <i class="bi bi-arrow-left-right me-2"></i> Convertir en facture proforma
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item py-2 text-warning btn-action-status" data-id="{{ $devis->id_devis }}">
+                                            <i class="bi bi-pencil-square me-2"></i> Modifier le statut
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item py-2 btn-action-duplicate" data-id="{{ $devis->id_devis }}">
+                                            <i class="bi bi-copy me-2"></i> Dupliquer
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider opacity-50"></li>
+                                    <li>
+                                        <button class="dropdown-item py-2 text-danger btn-action-delete" data-id="{{ $devis->id_devis }}" data-numero="{{ $devis->numero }}">
+                                            <i class="bi bi-trash3 me-2"></i> Supprimer
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-folder-x fs-2 d-block mb-2"></i> Aucun document commercial enregistré.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL 2 : ENVOYER PAR EMAIL (Image 4)      -->
+<!-- MODAL : CRÉATION DE DEVIS (Image 3)        -->
 <!-- ========================================== -->
-<div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg bg-white text-navy">
-            <div class="modal-header border-bottom border-light px-4 py-3">
-                <h5 class="modal-title fw-bold text-navy" id="sendEmailModalLabel" style="font-size: 1.15rem;">Envoyer par email</h5>
-                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="createDevisModal" tabindex="-1" aria-labelledby="createDevisModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-navy" id="createDevisModalLabel">Nouveau devis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body px-4 py-4 fs-8">
-                <form id="emailForm">
-                    <!-- Destinataire -->
-                    <div class="mb-3">
-                        <label for="emailDestinataire" class="form-label fw-bold text-muted text-uppercase mb-2" style="font-size: 0.72rem;">Destinataire</label>
-                        <input type="email" id="emailDestinataire" class="form-control bg-light border-light py-2 fs-8" placeholder="destinataire@email.com" required style="box-shadow:none !important;">
-                    </div>
-                    <!-- Objet -->
-                    <div class="mb-3">
-                        <label for="emailObjet" class="form-label fw-bold text-muted text-uppercase mb-2" style="font-size: 0.72rem;">Objet</label>
-                        <input type="text" id="emailObjet" class="form-control bg-light border-light py-2 fs-8" placeholder="Objet de l'email" required style="box-shadow:none !important;">
-                    </div>
-                    <!-- Message -->
-                    <div class="mb-3">
-                        <label for="emailMessage" class="form-label fw-bold text-muted text-uppercase mb-2" style="font-size: 0.72rem;">Message</label>
-                        <textarea id="emailMessage" class="form-control bg-light border-light py-2 fs-8" rows="6" required style="box-shadow:none !important; resize: none;"></textarea>
-                    </div>
-                    <small class="text-muted d-block fs-10 mb-3" style="font-style: italic;">Le PDF du devis sera joint automatiquement en pièce jointe.</small>
-                    
-                    <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-toggle="modal" data-bs-target="#devisDetailsModal" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" id="btnSubmitEmailForm" class="btn rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-send-fill me-1"></i> Envoyer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ========================================== -->
-<!-- MODAL 3 : CRÉER UN NOUVEAU DEVIS           -->
-<!-- ========================================== -->
-<div class="modal fade" id="newDevisModal" tabindex="-1" aria-labelledby="newDevisModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow-lg bg-white text-navy">
-            <div class="modal-header border-bottom border-light px-4">
-                <h5 class="modal-title fw-extrabold text-navy" id="newDevisModalLabel">Nouveau devis <small class="text-muted fs-8 ms-2">Prochain n° : {{ $nextNumber }}</small></h5>
-                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            
-            <form action="{{ route('admin.devis.store') }}" method="POST">
+            <form action="{{ route('admin.devis.store') }}" method="POST" id="createDevisForm">
                 @csrf
-                <div class="modal-body px-4 py-4 row g-3 fs-8">
+                <div class="modal-body">
+                    <p class="text-muted small mb-4">Prochain n° automatique estimé : <strong class="text-navy">{{ $nextNumber }}</strong></p>
                     
-                    <!-- Client -->
-                    <div class="col-md-6">
-                        <label for="id_client" class="form-label fw-bold text-navy text-uppercase">Client *</label>
-                        <select name="id_client" id="id_client" class="form-select bg-light border-light py-2 fs-8" required>
-                            <option value="" selected disabled>Sélectionner un client</option>
-                            @foreach($clients as $client)
-                            <option value="{{ $client->id_client }}">{{ $client->prenom }} {{ $client->nom }}</option>
-                            @endforeach
-                        </select>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Client *</label>
+                            <select name="id_client" id="client-select" class="form-select border-light-subtle rounded-3 py-2.5" required>
+                                <option value="" disabled selected>Sélectionner un client</option>
+                                @foreach($clients as $client)
+                                <option value="{{ $client->id_client }}">{{ $client->prenom }} {{ $client->nom }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Type de document *</label>
+                            <select name="type" class="form-select border-light-subtle rounded-3 py-2.5" required>
+                                <option value="Devis" selected>Devis</option>
+                                <option value="Facture_proforma">Facture proforma</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Type de document -->
-                    <div class="col-md-6">
-                        <label for="type" class="form-label fw-bold text-navy text-uppercase">Type de document *</label>
-                        <select name="type" id="type" class="form-select bg-light border-light py-2 fs-8" required>
-                            <option value="Devis" selected>Devis</option>
-                            <option value="Facture_proforma">Facture proforma</option>
-                        </select>
-                    </div>
-
-                    <!-- Opportunité liée -->
-                    <div class="col-12">
-                        <label for="id_lead" class="form-label fw-bold text-navy text-uppercase">Lead lié (optionnel)</label>
-                        <select name="id_lead" id="id_lead" class="form-select bg-light border-light py-2 fs-8">
-                            <option value="" selected>Aucun lead</option>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Lead lié (Optionnel)</label>
+                        <select name="id_lead" id="lead-select" class="form-select border-light-subtle rounded-3 py-2.5">
+                            <option value="" data-client-id="">Aucun lead lié</option>
                             @foreach($leads as $lead)
-                            <option value="{{ $lead->id_lead }}" data-client="{{ $lead->id_client }}">{{ $lead->client->prenom }} {{ $lead->client->nom }} - {{ $lead->message_origine }}</option>
+                            <option value="{{ $lead->id_lead }}" data-client-id="{{ $lead->id_client }}">Lead #{{ $lead->id_lead }} - {{ $lead->client->prenom }} {{ $lead->client->nom }}</option>
                             @endforeach
                         </select>
                     </div>
 
-                    <!-- TABLEAU DYNAMIQUE DE LIGNES DE DEVIS -->
-                    <div class="col-12 mt-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-navy text-uppercase">Lignes de devis</span>
-                            <button type="button" class="btn btn-link p-0 text-cyan text-decoration-none fw-bold fs-8" id="btnAddLine"><i class="bi bi-plus-lg"></i> Ajouter une ligne</button>
-                        </div>
-                        
-                        <div class="table-responsive rounded-3 border border-light bg-white">
-                            <table class="table align-middle mb-0 fs-8" id="devisLinesTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th scope="col" style="width: 50%;">Sélectionner un service</th>
-                                        <th scope="col" style="width: 15%;">Quantité</th>
-                                        <th scope="col" class="text-end" style="width: 25%;">Prix unitaire (FCFA)</th>
-                                        <th scope="col" class="text-end" style="width: 10%;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="devis-line-row">
-                                        <td>
-                                            <select name="lignes[0][id_service]" class="form-select border-0 fs-8 service-select" required>
-                                                <option value="" selected disabled>Choisir un service...</option>
-                                                @foreach($services as $svc)
-                                                <option value="{{ $svc->id_service }}" data-price="{{ $svc->prix_indicatif }}">{{ $svc->nom_service }}</option>
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="lignes[0][quantite]" class="form-control border-0 fs-8 qty-input" value="1" min="1" required style="background: transparent !important;">
-                                        </td>
-                                        <td>
-                                            <input type="number" name="lignes[0][prix]" class="form-control border-0 fs-8 price-input" value="0" min="0" required style="background: transparent !important;">
-                                        </td>
-                                        <td class="text-end">
-                                            <button type="button" class="btn btn-link text-danger p-0 border-0 btn-delete-line" style="display:none;"><i class="bi bi-trash"></i></button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-navy mb-0" style="font-size: 0.85rem;">LIGNES DE DEVIS</h6>
+                        <button type="button" id="btn-add-line" class="btn btn-outline-cyan btn-sm rounded-pill px-3 fw-bold">
+                            <i class="bi bi-plus-lg me-1"></i> Ajouter une ligne
+                        </button>
                     </div>
 
-                    <!-- TOTAUX COMPTABLES -->
-                    <div class="col-12 mt-4 pt-3 border-top border-light">
-                        <div class="row justify-content-end text-end">
-                            <div class="col-md-5 fs-8">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted fw-semibold">Total HT :</span>
-                                    <span class="fw-bold text-navy" id="totalHtSpan">0 FCFA</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="text-muted fw-semibold">TVA (%) :</span>
-                                    <input type="number" name="tva_percentage" id="tvaInput" class="form-control text-end border-0 p-0 fs-8 fw-bold text-navy" value="0" min="0" max="100" style="width: 50px; background: transparent !important; box-shadow:none !important;">
-                                </div>
-                                <div class="d-flex justify-content-between border-top border-light pt-2" style="font-size: 1.15rem;">
-                                    <span class="fw-bold text-navy">Total TTC :</span>
-                                    <span class="fw-extrabold text-cyan" id="totalTtcSpan">0 FCFA</span>
-                                </div>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-borderless align-middle" id="lignes-table">
+                            <thead>
+                                <tr class="text-muted small text-uppercase" style="font-size: 0.75rem;">
+                                    <th style="width: 50%;">Sélectionner un service</th>
+                                    <th style="width: 15%;">Quantité</th>
+                                    <th style="width: 25%;">Prix unitaire (FCFA)</th>
+                                    <th style="width: 10%;" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lignes-container">
+                                <tr class="ligne-article">
+                                    <td>
+                                        <select name="lignes[0][id_service]" class="form-select service-select border-light-subtle rounded-3 py-2" required>
+                                            <option value="" disabled selected>Choisir un service</option>
+                                            @foreach($services as $service)
+                                            <option value="{{ $service->id_service }}" data-price="{{ $service->prix_indicatif }}">{{ $service->nom_service }} - {{ number_format($service->prix_indicatif, 0, ',', ' ') }} FCFA</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="lignes[0][quantite]" class="form-control qty-input border-light-subtle rounded-3 py-2 text-center" min="1" value="1" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="lignes[0][prix]" class="form-control price-input border-light-subtle rounded-3 py-2 text-end" min="0" value="0" required>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-light text-danger btn-sm rounded-circle btn-remove-line" disabled>
+                                            <i class="bi bi-trash3-fill"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row justify-content-end text-end border-top pt-4">
+                        <div class="col-md-5" style="font-size: 0.9rem;">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total HT :</span>
+                                <span class="fw-bold text-navy" id="label-total-ht">0 FCFA</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted">TVA (%) :</span>
+                                <input type="number" name="tva_percentage" id="input-tva" class="form-control border-light-subtle rounded-3 text-center py-1" style="width: 80px;" min="0" max="100" value="18">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                                <span class="h6 fw-bold text-navy mb-0">Total TTC :</span>
+                                <span class="h5 fw-extrabold text-cyan mb-0" id="label-total-ttc" style="color: #00B4D8;">0 FCFA</span>
                             </div>
                         </div>
                     </div>
-
                 </div>
-                <div class="modal-footer border-top border-light px-4 py-3">
-                    <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background: #0D1B4B; border:none;">Générer le devis</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-navy rounded-pill px-4 text-white" style="background-color: #0D1B4B;">Générer le devis</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- STYLE DE SÉCURITÉ POUR SUPPRIMER LE CLIPPING ET POSITIONNER LE SOUS-MENU À GAUCHE -->
-<style>
-    .table-responsive {
-        overflow: visible !important;
-    }
+<!-- ========================================== -->
+<!-- MODAL : DÉTAILS D'UN DOCUMENT (Image 2)    -->
+<!-- ========================================== -->
+<div class="modal fade" id="detailsDevisModal" tabindex="-1" aria-labelledby="detailsDevisModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <div class="w-100">
+                    <h5 class="modal-title fw-bold text-navy mb-1" id="detail-numero">DEV-2026-0042</h5>
+                    <p class="text-muted small mb-0" id="detail-client-meta">Sylvie MALONGA · Devis</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="row g-3 mb-4 mt-1">
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded-3">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Émission</span>
+                            <strong class="d-block mt-1" id="detail-emission">24/05/2026</strong>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded-3">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Expiration</span>
+                            <strong class="d-block mt-1" id="detail-expiration">23/06/2026</strong>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded-3">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Statut</span>
+                            <strong class="d-block mt-1" id="detail-statut">En attente</strong>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded-3">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Paiement</span>
+                            <strong class="d-block mt-1" id="detail-paiement">Non payé</strong>
+                        </div>
+                    </div>
+                </div>
 
-    /* GESTION ET POSITIONNEMENT DU SOUS-MENU DE STATUT À GAUCHE */
-    .dropdown-submenu {
-        position: relative !important;
-    }
-    .dropdown-submenu .dropdown-menu {
-        position: absolute !important;
-        top: 0 !important;
-        left: -160px !important; /* Décale le menu de 160px exactement vers la gauche pour éviter d'entraver le clic */
-        margin-top: -6px !important;
-        display: none !important; /* Masqué par défaut */
-        background-color: #ffffff !important;
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 8px !important;
-        box-shadow: 0 10px 30px rgba(13, 27, 75, 0.1) !important;
-        padding: 6px 0 !important;
-        min-width: 150px !important;
-        z-index: 1050 !important;
-    }
-    /* Ouvrir proprement au survol et bloquer les interférences */
-    .dropdown-submenu:hover .dropdown-menu {
-        display: block !important;
-    }
+                <h6 class="fw-bold text-navy mb-3">Détail des lignes</h6>
+                <div class="table-responsive mb-4 border rounded-3">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Service</th>
+                                <th class="text-center" style="width: 10%;">Qté</th>
+                                <th class="text-end" style="width: 25%;">Prix unit.</th>
+                                <th class="text-end pe-3" style="width: 25%;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-lignes-tbody"></tbody>
+                    </table>
+                </div>
 
-    /* Couleur des puces de statut conformes */
-    .status-dot-orange { color: #fd7e14 !important; }
-    .status-dot-green { color: #198754 !important; }
-    .status-dot-red { color: #dc3545 !important; }
-    .status-dot-gray { color: #6c757d !important; }
+                <div class="row justify-content-end text-end mb-1">
+                    <div class="col-md-5" style="font-size: 0.9rem;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Total HT :</span>
+                            <span class="fw-bold text-navy" id="detail-total-ht">0 FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-2">
+                            <span class="h6 fw-bold text-navy mb-0">Total TTC :</span>
+                            <span class="h5 fw-extrabold text-navy mb-0" id="detail-total-ttc">0 FCFA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions de l'Image 2 (Intègre désormais le menu de statut Dropup exact à votre image de prototype) -->
+            <div class="modal-footer border-top-0 pt-0 d-flex flex-wrap gap-2 justify-content-between">
+                <div class="d-flex gap-2">
+                    <a href="#" id="btn-download-pdf" class="btn btn-navy rounded-pill px-3 py-2 fw-bold text-white fs-8" style="background-color: #0D1B4B; text-decoration: none;">
+                        <i class="bi bi-download me-1"></i> Télécharger PDF
+                    </a>
+                    <button type="button" id="btn-trigger-email" class="btn btn-outline-cyan rounded-pill px-3 py-2 fw-bold fs-8">
+                        <i class="bi bi-envelope me-1"></i> Envoyer par email
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    <!-- Menu déroulant Dropup à pastilles de couleur fidèlement modélisé (Image de votre prototype et data-bs-display static anti-clipping) -->
+                    <div class="dropdown dropup" id="status-dropdown-wrapper">
+                        <button class="btn btn-light rounded-pill px-3 py-2 fw-bold fs-8 dropdown-toggle" type="button" id="btn-status-dropdown" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="border: 2px solid #000; color: #4F5E7B; background-color: #F8FAFC;">
+                            Modifier le statut
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-3 p-2" aria-labelledby="btn-status-dropdown" id="detail-status-menu" style="min-width: 180px; margin-bottom: 8px !important;">
+                            <!-- Les options statiques sont définies ici pour éviter les bugs de liaison dynamique du clic -->
+                            <li>
+                                <button type="button" class="dropdown-item py-2.5 d-flex align-items-center gap-2 fw-semibold" style="font-size: 0.85rem;" onclick="updateDocumentStatus(activeDevisId, 'En_attente')">
+                                    <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #F59E0B;"></span>
+                                    En attente
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item py-2.5 d-flex align-items-center gap-2 fw-semibold" style="font-size: 0.85rem;" onclick="updateDocumentStatus(activeDevisId, 'Accepte')">
+                                    <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #10B981;"></span>
+                                    Accepté
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item py-2.5 d-flex align-items-center gap-2 fw-semibold" style="font-size: 0.85rem;" onclick="updateDocumentStatus(activeDevisId, 'Refuse')">
+                                    <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #EF4444;"></span>
+                                    Refusé
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item py-2.5 d-flex align-items-center gap-2 fw-semibold" style="font-size: 0.85rem;" onclick="updateDocumentStatus(activeDevisId, 'Expire')">
+                                    <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #9CA3AF;"></span>
+                                    Expiré
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <button type="button" id="btn-delete-devis" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-bold fs-8">
+                        <i class="bi bi-trash3-fill me-1"></i> Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    /* TOASTS DE NOTIFICATIONS FLOTTANTS PERSONNALISÉS (CONFORMES À L'IMAGE) */
-    .toast-custom {
-        background-color: #0D1B4B !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 12px !important;
-        padding: 12px 20px !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        min-width: 300px;
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    .toast-success { border-color: rgba(25, 135, 84, 0.35) !important; }
-    .toast-success i { color: #198754 !important; } /* Icône verte */
-    
-    .toast-danger { border-color: rgba(220, 53, 69, 0.35) !important; }
-    .toast-danger i { color: #dc3545 !important; } /* Icône rouge */
+<!-- ========================================== -->
+<!-- MODAL : ENVOI DE MAIL                      -->
+<!-- ========================================== -->
+<div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-navy" id="sendEmailModalLabel">Envoyer par email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="sendEmailForm">
+                <div class="modal-body">
+                    <input type="hidden" id="email-devis-id">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Destinataire</label>
+                        <input type="email" id="email-destinataire" class="form-control border-light-subtle rounded-3 py-2" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Objet</label>
+                        <input type="text" id="email-objet" class="form-control border-light-subtle rounded-3 py-2" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Message</label>
+                        <textarea id="email-message" class="form-control border-light-subtle rounded-3 py-2 text-muted" rows="6" style="font-size: 0.85rem;" required></textarea>
+                    </div>
+                    <p class="text-muted" style="font-size: 0.75rem; border-top: 1px solid #F1F5F9; padding-top: 10px;">
+                        <i class="bi bi-paperclip me-1"></i> Le PDF de votre document sera joint automatiquement à votre envoi.
+                    </p>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" id="btn-submit-email" class="btn btn-cyan text-white rounded-pill px-4" style="background-color: #00B4D8; border: none;">
+                        <i class="bi bi-send-fill me-1"></i> Envoyer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    .toast-info { border-color: rgba(0, 210, 244, 0.35) !important; }
-    .toast-info i { color: #00D2F4 !important; } /* Icône cyan */
+<!-- ========================================== -->
+<!-- MODAL : CONFIRMATION DE SUPPRESSION        -->
+<!-- ========================================== -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 shadow rounded-4 text-center p-4">
+            <div class="text-danger mb-3">
+                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem;"></i>
+            </div>
+            <h5 class="fw-bold text-navy mb-2" id="delete-confirm-title">Supprimer ce document ?</h5>
+            <p class="text-muted small px-3" id="delete-confirm-body">Êtes-vous sûr de vouloir supprimer ce document commercial ? Cette action est définitive et irréversible.</p>
+            <div class="d-flex gap-2 justify-content-center mt-3">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" id="btn-confirm-delete-action" class="btn btn-danger rounded-pill px-4">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    .toast-email { border-color: rgba(253, 126, 20, 0.35) !important; }
-    .toast-email i { color: #fd7e14 !important; } /* Icône enveloppe orange */
+<!-- ========================================== -->
+<!-- CHARGEMENT DE BOOTSTRAP JS ET LOGIQUE      -->
+<!-- ========================================== -->
 
-    /* UNSTACKING RESPONSIVE DES CARTES COMPTABLES SUR MOBILE */
-    @media (max-width: 767px) {
-        .responsive-table-to-cards thead {
-            display: none !important;
-        }
-        .responsive-table-to-cards tbody tr {
-            display: block !important;
-            background-color: #ffffff !important;
-            border: 1px solid #E2E8F0 !important;
-            border-radius: 12px !important;
-            margin-bottom: 15px !important;
-            padding: 15px !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02) !important;
-            position: relative !important;
-        }
-        .responsive-table-to-cards tbody td {
-            display: block !important;
-            text-align: right !important;
-            padding: 8px 0 !important;
-            border: none !important;
-            position: relative !important;
-        }
-        .responsive-table-to-cards tbody td::before {
-            content: attr(data-label) !important;
-            position: absolute !important;
-            left: 0 !important;
-            font-weight: 700 !important;
-            color: #4A5B73 !important;
-            text-transform: uppercase !important;
-            font-size: 0.72rem !important;
-        }
-        .responsive-table-to-cards tbody td.text-end {
-            text-align: right !important;
-        }
-    }
-</style>
+<!-- CDN de secours pour exposer globalement l'objet 'bootstrap' (Résout l'erreur ReferenceError) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-<!-- SCRIPTS COMPTABLES ET D'ACTIONS AJAX SÉCURISÉES -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    const servicesList = @json($services);
+    let ligneIndex = 1;
 
-    const tableBody = document.querySelector('#devisLinesTable tbody');
-    const btnAddLine = document.getElementById('btnAddLine');
-    const totalHtSpan = document.getElementById('totalHtSpan');
-    const totalTtcSpan = document.getElementById('totalTtcSpan');
-    const tvaInput = document.getElementById('tvaInput');
-    const leadSelect = document.getElementById('id_lead');
-    const clientSelect = document.getElementById('id_client');
-
-    let lineIndex = 1;
+    // Instances globales des Modals
+    let detailsModal = null;
+    let emailModal = null;
+    let deleteModal = null;
+    
+    // État applicatif de transaction
     let activeDevisId = null;
+    let activeDevisNumero = '';
+    let activeClientEmail = '';
+    let activeClientName = '';
 
-    // Instance des modaux Bootstrap
-    const detailsModal = new bootstrap.Modal(document.getElementById('devisDetailsModal'));
-    const sendEmailModal = new bootstrap.Modal(document.getElementById('sendEmailModal'));
+    document.addEventListener('DOMContentLoaded', () => {
+        // Sélection sécurisée de l'objet Bootstrap global
+        const bs = window.bootstrap;
+        
+        if (!bs) {
+            console.error("Flycom Error : Le fichier Bootstrap JS n'est toujours pas détecté.");
+            return;
+        }
 
-    if (leadSelect && clientSelect) {
-        leadSelect.addEventListener('change', () => {
-            const selectedOption = leadSelect.options[leadSelect.selectedIndex];
-            const clientId = selectedOption.getAttribute('data-client');
-            if (clientId) {
-                clientSelect.value = clientId;
-            }
-        });
-    }
+        // Initialisation des modals d'action
+        try {
+            const detailsEl = document.getElementById('detailsDevisModal');
+            const emailEl = document.getElementById('sendEmailModal');
+            const deleteEl = document.getElementById('deleteConfirmModal');
 
-    const calculateTotals = () => {
-        let totalHt = 0;
-        const rows = document.querySelectorAll('.devis-line-row');
+            if (detailsEl) detailsModal = new bs.Modal(detailsEl);
+            if (emailEl) emailModal = new bs.Modal(emailEl);
+            if (deleteEl) deleteModal = new bs.Modal(deleteEl);
+        } catch (e) {
+            console.error("Flycom Error : Échec de l'initialisation des modals Bootstrap :", e);
+            return;
+        }
 
-        rows.forEach(row => {
-            const qty = +row.querySelector('.qty-input').value || 0;
-            const price = +row.querySelector('.price-input').value || 0;
-            totalHt += qty * price;
-        });
+        // ========================================================
+        // 1. RECHERCHE ET FILTRES DYNAMIQUES (Image 1 & Vidéo)
+        // ========================================================
+        const searchInput = document.getElementById('devis-search-input');
+        const statusFilter = document.getElementById('devis-status-filter');
+        const rows = document.querySelectorAll('.devis-row');
 
-        const tvaPercent = +tvaInput.value || 0;
-        const totalTtc = totalHt + (totalHt * (tvaPercent / 100));
+        function filterRows() {
+            const query = (searchInput?.value || '').toLowerCase().trim();
+            const statusVal = statusFilter?.value || 'all';
 
-        totalHtSpan.innerText = totalHt.toLocaleString('fr-FR') + ' FCFA';
-        totalTtcSpan.innerText = totalTtc.toLocaleString('fr-FR') + ' FCFA';
-    };
+            rows.forEach(row => {
+                const rowNumero = row.getAttribute('data-numero') || '';
+                const rowClient = row.getAttribute('data-client') || '';
+                const rowStatut = row.getAttribute('data-statut') || '';
 
-    const bindLineEvents = (row) => {
-        const select = row.querySelector('.service-select');
-        const priceInput = row.querySelector('.price-input');
-        const qtyInput = row.querySelector('.qty-input');
-        const btnDelete = row.querySelector('.btn-delete-line');
+                const matchesSearch = rowNumero.includes(query) || rowClient.includes(query);
+                const matchesStatus = (statusVal === 'all' || rowStatut === statusVal);
 
-        select.addEventListener('change', () => {
-            const selectedOption = select.options[select.selectedIndex];
-            const catalogPrice = selectedOption.getAttribute('data-price');
-            if (catalogPrice) {
-                priceInput.value = parseFloat(catalogPrice);
-                calculateTotals();
-            }
-        });
-
-        priceInput.addEventListener('input', calculateTotals);
-        qtyInput.addEventListener('input', calculateTotals);
-
-        if (btnDelete) {
-            btnDelete.addEventListener('click', () => {
-                row.remove();
-                calculateTotals();
-                toggleDeleteButtons();
+                row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
             });
         }
-    };
 
-    const toggleDeleteButtons = () => {
-        const rows = document.querySelectorAll('.devis-line-row');
+        if (searchInput) searchInput.addEventListener('input', filterRows);
+        if (statusFilter) statusFilter.addEventListener('change', filterRows);
+
+        // ========================================================
+        // 2. CLIC INTERACTIF SUR CHAQUE LIGNE (Ouverture détails)
+        // ========================================================
         rows.forEach(row => {
-            const btn = row.querySelector('.btn-delete-line');
-            if (btn) {
-                btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.dropdown') || e.target.closest('.dropdown-menu')) {
+                    return;
+                }
+                const devisId = row.getAttribute('data-id');
+                if (devisId) {
+                    openDetailsModal(devisId);
+                }
+            });
+        });
+
+        // ========================================================
+        // 3. ACTION MENU DÉLÉGUÉE (Menu contextuel de la ligne & Ouverture manuelle robuste)
+        // ========================================================
+        const tbody = document.getElementById('devis-tbody');
+        if (tbody) {
+            tbody.addEventListener('click', (e) => {
+                const viewBtn = e.target.closest('.btn-action-view');
+                const convertBtn = e.target.closest('.btn-action-convert');
+                const duplicateBtn = e.target.closest('.btn-action-duplicate');
+                const deleteBtn = e.target.closest('.btn-action-delete');
+                const statusBtn = e.target.closest('.btn-action-status');
+                const toggleBtn = e.target.closest('.dropdown-toggle-btn');
+
+                // Traiter l'ouverture manuelle des trois points (Résout le blocage de clic)
+                if (toggleBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const menu = toggleBtn.nextElementSibling;
+                    if (menu) {
+                        document.querySelectorAll('.dropdown-menu.show').forEach(openMenu => {
+                            if (openMenu !== menu) openMenu.classList.remove('show');
+                        });
+                        menu.classList.toggle('show');
+                    }
+                    return;
+                }
+
+                if (viewBtn) {
+                    openDetailsModal(viewBtn.getAttribute('data-id'));
+                }
+                if (convertBtn) {
+                    convertDocument(convertBtn.getAttribute('data-id'), convertBtn.getAttribute('data-type'));
+                }
+                if (duplicateBtn) {
+                    duplicateDocument(duplicateBtn.getAttribute('data-id'));
+                }
+                if (deleteBtn) {
+                    triggerDeleteModal(deleteBtn.getAttribute('data-id'), deleteBtn.getAttribute('data-numero'));
+                }
+                if (statusBtn) {
+                    const id = statusBtn.getAttribute('data-id');
+                    openDetailsModal(id);
+                    setTimeout(() => {
+                        const menuStatus = document.getElementById('detail-status-menu');
+                        if (menuStatus) menuStatus.classList.add('show');
+                    }, 500);
+                }
+            });
+        }
+
+        // ========================================================
+        // 4. LIAISON UNIQUE DES BOUTONS DE DETAILS (Image 2)
+        // ========================================================
+        const btnDownloadPdf = document.getElementById('btn-download-pdf');
+        if (btnDownloadPdf) {
+            btnDownloadPdf.addEventListener('click', (e) => {
+                if (!activeDevisId) {
+                    e.preventDefault();
+                    return;
+                }
+                btnDownloadPdf.setAttribute('href', `{{ url('admin/devis') }}/${activeDevisId}/download`);
+            });
+        }
+
+        const btnTriggerEmail = document.getElementById('btn-trigger-email');
+        if (btnTriggerEmail) {
+            btnTriggerEmail.addEventListener('click', () => {
+                if (detailsModal) detailsModal.hide();
+                setTimeout(() => {
+                    openEmailModal(activeDevisId, activeClientEmail, activeDevisNumero, activeClientName);
+                }, 400);
+            });
+        }
+
+        const btnDeleteDevis = document.getElementById('btn-delete-devis');
+        if (btnDeleteDevis) {
+            btnDeleteDevis.addEventListener('click', () => {
+                if (detailsModal) detailsModal.hide();
+                setTimeout(() => {
+                    triggerDeleteModal(activeDevisId, activeDevisNumero);
+                }, 400);
+            });
+        }
+
+        // ========================================================
+        // 4.1 OUVERTURE MANUELLE ROBUSTE DU STATUT DANS LE MODAL (Résout définitivement le problème de masquage)
+        // ========================================================
+        const btnStatusDropdown = document.getElementById('btn-status-dropdown');
+        const detailStatusMenu = document.getElementById('detail-status-menu');
+
+        if (btnStatusDropdown && detailStatusMenu) {
+            btnStatusDropdown.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                detailStatusMenu.classList.toggle('show');
+            });
+        }
+
+        // Fermer tous les menus déroulants ouverts si l'utilisateur clique en dehors de l'écran
+        document.addEventListener('click', (e) => {
+            if (detailStatusMenu && !detailStatusMenu.contains(e.target) && e.target !== btnStatusDropdown) {
+                detailStatusMenu.classList.remove('show');
+            }
+            if (!e.target.closest('.dropdown-menu') && !e.target.closest('.dropdown-toggle-btn') && !e.target.closest('#btn-status-dropdown')) {
+                document.querySelectorAll('.dropdown-menu.show').forEach(openMenu => {
+                    openMenu.classList.remove('show');
+                });
             }
         });
-    };
 
-    if (btnAddLine) {
-        btnAddLine.addEventListener('click', () => {
-            const firstRow = document.querySelector('.devis-line-row');
-            const newRow = firstRow.cloneNode(true);
+        // ========================================================
+        // 5. CRÉATION DU DOCUMENT ET AUTOCOMPLÉTION (Image 3)
+        // ========================================================
+        const btnAddLine = document.getElementById('btn-add-line');
+        const lignesContainer = document.getElementById('lignes-container');
+        const inputTva = document.getElementById('input-tva');
+        const leadSelect = document.getElementById('lead-select');
+        const clientSelect = document.getElementById('client-select');
 
-            newRow.querySelector('.qty-input').value = 1;
-            newRow.querySelector('.price-input').value = 0;
-            newRow.querySelector('.service-select').selectedIndex = 0;
+        // Liaison Automatique Client / Opportunité
+        if (leadSelect && clientSelect) {
+            leadSelect.addEventListener('change', () => {
+                const selectedOption = leadSelect.options[leadSelect.selectedIndex];
+                const clientId = selectedOption.getAttribute('data-client-id');
+                if (clientId) {
+                    clientSelect.value = clientId;
+                }
+            });
+        }
 
-            // Correction de syntaxe littérale (Mise à niveau ES6)
-            newRow.querySelector('.service-select').name = `lignes[${lineIndex}][id_service]`;
-            newRow.querySelector('.qty-input').name = `lignes[${lineIndex}][quantite]`;
-            newRow.querySelector('.price-input').name = `lignes[${lineIndex}][prix]`;
+        if (btnAddLine) {
+            btnAddLine.addEventListener('click', () => {
+                const tr = document.createElement('tr');
+                tr.classList.add('ligne-article');
+                
+                let options = '<option value="" disabled selected>Choisir un service</option>';
+                servicesList.forEach(service => {
+                    options += `<option value="${service.id_service}" data-price="${service.prix_indicatif}">${service.nom_service} - ${new Intl.NumberFormat('fr-FR').format(service.prix_indicatif)} FCFA</option>`;
+                });
 
-            tableBody.appendChild(newRow);
-            bindLineEvents(newRow);
-            toggleDeleteButtons();
+                tr.innerHTML = `
+                    <td>
+                        <select name="lignes[${ligneIndex}][id_service]" class="form-select service-select border-light-subtle rounded-3 py-2" required>
+                            ${options}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="lignes[${ligneIndex}][quantite]" class="form-control qty-input border-light-subtle rounded-3 py-2 text-center" min="1" value="1" required>
+                    </td>
+                    <td>
+                        <input type="number" name="lignes[${ligneIndex}][prix]" class="form-control price-input border-light-subtle rounded-3 py-2 text-end" min="0" value="0" required>
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-light text-danger btn-sm rounded-circle btn-remove-line">
+                            <i class="bi bi-trash3-fill"></i>
+                        </button>
+                    </td>
+                `;
+
+                lignesContainer.appendChild(tr);
+                ligneIndex++;
+                toggleRemoveButtons();
+                setupLineListeners(tr);
+                calculateFormTotals();
+            });
+        }
+
+        const firstLine = document.querySelector('.ligne-article');
+        if (firstLine) {
+            setupLineListeners(firstLine);
+        }
+
+        if (inputTva) {
+            inputTva.addEventListener('input', calculateFormTotals);
+        }
+
+        function setupLineListeners(row) {
+            const select = row.querySelector('.service-select');
+            const qtyInput = row.querySelector('.qty-input');
+            const priceInput = row.querySelector('.price-input');
+            const removeBtn = row.querySelector('.btn-remove-line');
+
+            select.addEventListener('change', () => {
+                const selectedOption = select.options[select.selectedIndex];
+                const basePrice = selectedOption.getAttribute('data-price') || 0;
+                priceInput.value = basePrice;
+                calculateFormTotals();
+            });
+
+            qtyInput.addEventListener('input', calculateFormTotals);
+            priceInput.addEventListener('input', calculateFormTotals);
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                    toggleRemoveButtons();
+                    calculateFormTotals();
+                });
+            }
+        }
+
+        function toggleRemoveButtons() {
+            const allRows = document.querySelectorAll('.ligne-article');
+            allRows.forEach(row => {
+                const btn = row.querySelector('.btn-remove-line');
+                if (btn) {
+                    btn.disabled = allRows.length === 1;
+                }
+            });
+        }
+
+        function calculateFormTotals() {
+            let totalHt = 0;
+            const allRows = document.querySelectorAll('.ligne-article');
             
-            lineIndex++;
-        });
-    }
+            allRows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const price = parseFloat(row.querySelector('.price-input').value) || 0;
+                totalHt += qty * price;
+            });
 
-    const initialRow = document.querySelector('.devis-line-row');
-    if (initialRow) {
-        bindLineEvents(initialRow);
-    }
-    
-    if (tvaInput) {
-        tvaInput.addEventListener('input', calculateTotals);
-    }
+            const tvaPercent = parseFloat(inputTva.value) || 0;
+            const totalTva = totalHt * (tvaPercent / 100);
+            const totalTtc = totalHt + totalTva;
 
-    /* ── 2. TOASTS DYNAMIQUES DU CRM ── */
-    const showToast = (message, type = 'success') => {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `toast-custom toast-${type} mb-2 d-flex align-items-center justify-content-between`;
+            document.getElementById('label-total-ht').innerText = formatCurrency(totalHt);
+            document.getElementById('label-total-ttc').innerText = formatCurrency(totalTtc);
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('fr-FR').format(value) + ' FCFA';
+        }
+
+        // ========================================================
+        // 6. FORMULAIRE ENVOI E-MAIL
+        // ========================================================
+        const emailForm = document.getElementById('sendEmailForm');
+        if (emailForm) {
+            emailForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const devisId = document.getElementById('email-devis-id').value;
+                const btnSubmit = document.getElementById('btn-submit-email');
+
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Envoi...`;
+
+                const payload = {
+                    destinataire: document.getElementById('email-destinataire').value,
+                    objet: document.getElementById('email-objet').value,
+                    message: document.getElementById('email-message').value
+                };
+
+                const url = `{{ url('admin/devis') }}/${devisId}/send-email`;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = `<i class="bi bi-send-fill me-1"></i> Envoyer`;
+                    if (data.success) {
+                        showToast(data.message, 'E-mail envoyé');
+                        if (emailModal) emailModal.hide();
+                    } else {
+                        showToast("Une erreur s'est produite lors de l'envoi de l'e-mail.", 'Erreur', 5000);
+                    }
+                })
+                .catch(err => {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = `<i class="bi bi-send-fill me-1"></i> Envoyer`;
+                    showToast("Impossible de joindre le serveur de messagerie.", 'Erreur', 5000);
+                });
+            });
+        }
+    });
+
+    // ========================================================
+    // 7. TOASTS D'ACTIONS CONSOLE DE NOTIFICATION (Fidèle à vos captures d'écran)
+    // ========================================================
+    window.showToast = function(message, title = 'Notification', duration = 4000) {
+        const container = document.querySelector('.toast-container');
+        if (!container) return;
+        const id = 'toast-' + Date.now();
         
-        let icon = 'bi-check-circle-fill';
-        if (type === 'danger') icon = 'bi-trash-fill';
-        if (type === 'info') icon = 'bi-info-circle-fill';
-        if (type === 'email') icon = 'bi-envelope-fill';
+        let customClass = 'toast-custom-info';
+        let iconHtml = '<i class="bi bi-info-circle-fill me-1"></i>';
+        
+        if (message.includes('Gagné') || message.includes('supprimé') || message.includes('créé') || message.includes('converti')) {
+            customClass = 'toast-custom-success';
+            iconHtml = '<i class="bi bi-check-circle-fill me-1"></i>';
+        }
 
-        toast.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi ${icon}"></i>
-                <span>${message}</span>
+        const toastHtml = `
+            <div id="${id}" class="toast align-items-center border-0 mb-2 shadow ${customClass}" role="alert" aria-live="assertive" aria-atomic="true" style="opacity: 1; min-width: 250px;">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong class="d-block" style="font-size: 0.85rem;">${iconHtml} ${title}</strong>
+                        <span style="font-size: 0.8rem;">${message}</span>
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
             </div>
         `;
-        container.appendChild(toast);
-
-        // Disparition et suppression automatique après 4 secondes
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-            setTimeout(() => { toast.remove(); }, 300);
-        }, 4000);
-    };
-
-    /* ── 3. CHARGEMENT DYNAMIQUE DU MODAL DÉTAILS DEVIS ── */
-    const detailModalElement = document.getElementById('devisDetailsModal');
-    
-    // Gérer l'affectation de l'ID du devis actif lors du clic (S'applique à la ligne entière ou au bouton d'option)
-    const bindViewDevisClick = () => {
-        document.querySelectorAll('.btn-view-devis').forEach(el => {
-            el.addEventListener('click', (e) => {
-                // Analyse par élément de proximité pour gérer le clic sur l'icône imbriquée (Finition M4)
-                const target = e.target.closest('[data-id]');
-                if (target) {
-                    activeDevisId = target.getAttribute('data-id');
-                    loadDevisDetails(activeDevisId);
-                }
-            });
+        container.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(id);
+        const bs = window.bootstrap;
+        const bsToast = new bs.Toast(toastElement, { delay: duration });
+        bsToast.show();
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
         });
     };
 
-    const loadDevisDetails = (id) => {
-        if (!id) return;
+    // ========================================================
+    // 8. APPEL DE DÉTAILS AJAX (Image 2)
+    // ========================================================
+    window.openDetailsModal = function(devisId) {
+        const url = `{{ url('admin/devis') }}/${devisId}/details`;
 
-        // Initialisation visuelle
-        document.getElementById('detailDevisNum').innerText = "Chargement...";
-        document.getElementById('detailDevisClientMeta').innerText = "";
-        document.getElementById('detailTotalHt').innerText = "0 FCFA";
-        document.getElementById('detailTotalTtc').innerText = "0 FCFA";
-        
-        const tbody = document.querySelector('#detailLinesTable tbody');
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Chargement des articles...</td></tr>';
-
-        // Requête dynamique AJAX (M4)
-        fetch(`/admin/devis/${id}/details`)
+        fetch(url)
             .then(res => {
-                if (!res.ok) {
-                    throw new Error('HTTP error ' + res.status);
-                }
+                if (!res.ok) throw new Error("Erreur de communication avec le serveur");
                 return res.json();
             })
             .then(data => {
-                document.getElementById('detailDevisNum').innerText = data.numero;
+                activeDevisId = data.id_devis;
+                activeDevisNumero = data.numero;
+                activeClientEmail = data.client_email;
+                activeClientName = data.client_name;
+
+                document.getElementById('detail-numero').innerText = data.numero;
+                document.getElementById('detail-client-meta').innerText = `${data.client_name} · ${data.type}`;
+                document.getElementById('detail-emission').innerText = data.date_emission;
+                document.getElementById('detail-expiration').innerText = data.date_expiration;
                 
-                // Badge de statut d'en-tête dynamique
-                const headerStatus = document.getElementById('detailHeaderStatus');
-                if (headerStatus) {
-                    headerStatus.innerText = data.statut;
-                    headerStatus.className = `badge ms-2 ${data.statut === 'Accepte' ? 'bg-success' : (data.statut === 'En attente' ? 'bg-warning' : 'bg-danger')}`;
-                }
-
-                document.getElementById('detailDevisClientMeta').innerText = data.client_name + ' · ' + data.type;
-                document.getElementById('detailEmission').innerText = data.date_emission;
-                document.getElementById('detailExpiration').innerText = data.date_expiration;
-                document.getElementById('detailStatut').innerText = data.statut;
-                document.getElementById('detailPaiement').innerText = data.statut_paiement;
-                document.getElementById('detailTotalHt').innerText = data.montant_ht + ' FCFA';
-                document.getElementById('detailTotalTtc').innerText = data.montant_ttc + ' FCFA';
-
-                // Lier le bouton d'impression (M4) (Définition de l'ID courant pour le correctif d'impression silencieuse)
-                document.getElementById('btnPrintLink').setAttribute('data-current-id', id);
-
-                // Remplir le bouton d'envoi d'e-mail avec l'ID pour le chaînage natif
-                document.getElementById('btnOpenEmailModal').setAttribute('data-id', id);
-
-                // Remplir dynamiquement les champs du second modal d'envoi d'e-mail
-                document.getElementById('emailDestinataire').value = data.client_email;
-                document.getElementById('emailObjet').value = `Devis ${data.numero} — Flycom Services`;
-                document.getElementById('emailMessage').value = `Bonjour ${data.client_prenom},\n\nVeuillez trouver ci-joint notre devis ${data.numero}.\n\nCordialement,\nL'équipe Flycom Services`;
-
-                const statusText = document.getElementById('detailStatut');
-                if (data.statut === 'Accepte') {
-                    statusText.className = 'fw-bold d-block text-success mt-1';
-                } else if (data.statut === 'En attente') {
-                    statusText.className = 'fw-bold d-block text-warning mt-1';
+                const statutEl = document.getElementById('detail-statut');
+                if (data.statut === 'En_attente') {
+                    statutEl.innerHTML = '<span class="badge rounded-pill bg-warning-subtle text-warning">En attente</span>';
+                } else if (data.statut === 'Accepte') {
+                    statutEl.innerHTML = '<span class="badge rounded-pill bg-success-subtle text-success">Accepté</span>';
+                } else if (data.statut === 'Refuse') {
+                    statutEl.innerHTML = '<span class="badge rounded-pill bg-danger-subtle text-danger">Refusé</span>';
                 } else {
-                    statusText.className = 'fw-bold d-block text-danger mt-1';
+                    statutEl.innerHTML = '<span class="badge rounded-pill bg-secondary-subtle text-secondary">Expiré</span>';
                 }
 
+                const paiementEl = document.getElementById('detail-paiement');
+                if (data.statut_paiement === 'Non_paye') {
+                    paiementEl.innerHTML = '<span class="text-danger fw-semibold">Non payé</span>';
+                } else if (data.statut_paiement === 'Acompte_recu') {
+                    paiementEl.innerHTML = '<span class="text-warning fw-semibold">Acompte reçu</span>';
+                } else {
+                    paiementEl.innerHTML = '<span class="text-success fw-semibold">Solde</span>';
+                }
+
+                document.getElementById('detail-total-ht').innerText = `${data.montant_ht} FCFA`;
+                document.getElementById('detail-total-ttc').innerText = `${data.montant_ttc} FCFA`;
+
+                const tbody = document.getElementById('detail-lignes-tbody');
                 tbody.innerHTML = '';
-                data.lignes.forEach(line => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>
-                            <strong class="text-navy d-block">${line.nom_service}</strong>
-                            <small class="text-muted d-block fs-10" style="line-height:1.2;">${line.description}</small>
-                        </td>
-                        <td class="text-center fw-semibold">${line.quantite}</td>
-                        <td class="text-end text-muted">${line.prix}</td>
-                        <td class="text-end fw-bold text-navy">${line.total}</td>
+                data.lignes.forEach(ligne => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="ps-3">
+                                <strong>${ligne.nom_service}</strong><br>
+                                <small class="text-muted" style="font-size: 0.75rem;">${ligne.description}</small>
+                            </td>
+                            <td class="text-center">${ligne.quantite}</td>
+                            <td class="text-end">${ligne.prix} F</td>
+                            <td class="text-end pe-3 fw-bold text-navy">${ligne.total} F</td>
+                        </tr>
                     `;
-                    tbody.appendChild(tr);
                 });
+
+                if (detailsModal) detailsModal.show();
             })
             .catch(err => {
-                console.error('Error:', err);
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Erreur de chargement.</td></tr>';
+                showToast("Erreur de récupération des détails du document.", 'Erreur');
             });
     };
 
-    // Liaison initiale des événements de clic
-    bindViewDevisClick();
+    // ========================================================
+    // 9. CONVERSION DU DOCUMENT (Image 1)
+    // ========================================================
+    window.convertDocument = function(id, currentType) {
+        const checkType = (currentType || '').toLowerCase();
+        if (checkType !== 'devis') {
+            showToast("Seuls les devis peuvent être convertis en Facture Proforma.", 'Action impossible');
+            return;
+        }
 
-    /* ── 3. CHARGEMENT DYNAMIQUE DU MODAL D'EMAIL ── */
-    const sendEmailModalElement = document.getElementById('sendEmailModal');
-    if (sendEmailModalElement) {
-        sendEmailModalElement.addEventListener('show.bs.modal', (event) => {
-            const triggerBtn = event.relatedTarget;
-            const targetId = triggerBtn ? triggerBtn.getAttribute('data-id') : activeDevisId;
+        const url = `{{ url('admin/devis') }}/${id}/convert`;
 
-            if (targetId) {
-                // Requête AJAX pour charger les données réelles et pré-remplir tous les champs
-                fetch(`/admin/devis/${targetId}/details`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('emailDestinataire').value = data.client_email;
-                        document.getElementById('emailObjet').value = `Devis ${data.numero} — Flycom Services`;
-                        document.getElementById('emailMessage').value = `Bonjour ${data.client_prenom},\n\nVeuillez trouver ci-joint notre devis ${data.numero}.\n\nCordialement,\nL'équipe Flycom Services`;
-                    })
-                    .catch(err => console.error('Error pre-filling email:', err));
-            }
-        });
-    }
-
-    // Ouvrir le modal d'envoi d'e-mail (Correctif Bug N°4 : Garde uniquement le gestionnaire manuel JS)
-    const btnOpenEmailModal = document.getElementById('btnOpenEmailModal');
-    if (btnOpenEmailModal) {
-        btnOpenEmailModal.addEventListener('click', () => {
-            detailsModal.hide();
-            setTimeout(() => {
-                sendEmailModal.show();
-            }, 400); // Transition fluide
-        });
-    }
-
-    /* ── 4. ACTIONS OPÉRATIONNELLES SÉCURISÉES AJAX (M4 - COMPATIBILITÉ FORM-DATA) ── */
-    const actionAlert = document.getElementById('actionAlert');
-
-    const showAlert = (message, type = 'success') => {
-        actionAlert.className = `alert alert-${type} fs-8 py-2.5 rounded-3 mb-4 border-0`;
-        actionAlert.innerText = message;
-        actionAlert.classList.remove('d-none');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        setTimeout(() => {
-            actionAlert.classList.add('d-none');
-        }, 5000);
-    };
-
-    // Traitement de l'envoi de mail
-    const emailForm = document.getElementById('emailForm');
-    if (emailForm) {
-        emailForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!activeDevisId) return;
-
-            const btnSubmit = document.getElementById('btnSubmitEmailForm');
-            const previousText = btnSubmit.innerHTML;
-            btnSubmit.disabled = true;
-            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Envoi...';
-
-            const formData = new URLSearchParams({
-                destinataire: document.getElementById('emailDestinataire').value,
-                objet: document.getElementById('emailObjet').value,
-                message: document.getElementById('emailMessage').value
-            });
-
-            fetch(`/admin/devis/${activeDevisId}/send-email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = previousText;
-                
-                sendEmailModal.hide();
-                showToast(`Email envoyé sur ${document.getElementById('emailDestinataire').value}`, 'email');
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = previousText;
-            });
-        });
-    }
-
-    const triggerStatusUpdate = (id, newStatus) => {
-        const formData = new URLSearchParams({
-            statut: newStatus
-        });
-
-        fetch(`/admin/devis/${id}/update-status`, {
+        fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: formData
-        })
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(text => { throw new Error(text) });
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
             }
-            return res.json();
         })
+        .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // Mise à jour de l'UI en temps réel (Image 2)
-                const statusBadge = document.getElementById('detailStatut');
-                if (statusBadge) {
-                    statusBadge.innerText = newStatus.replace('_', ' ');
-                }
-                
-                const headerStatus = document.getElementById('detailHeaderStatus');
-                if (headerStatus) {
-                    headerStatus.innerText = newStatus.replace('_', ' ');
-                    headerStatus.className = `badge ms-2 ${newStatus === 'Accepte' ? 'bg-success' : (newStatus === 'En_attente' ? 'bg-warning' : 'bg-danger')}`;
-                }
-
-                // Ajuster la couleur de la priorité
-                const statusText = document.getElementById('detailStatut');
-                if (statusText) {
-                    if (newStatus === 'Accepte') {
-                        statusText.className = 'fw-bold d-block text-success mt-1';
-                    } else if (newStatus === 'En attente') {
-                        statusText.className = 'fw-bold d-block text-warning mt-1';
-                    } else {
-                        statusText.className = 'fw-bold d-block text-danger mt-1';
-                    }
-                }
-
-                // Mettre à jour l'index
-                const row = document.getElementById(`devisRow${id}`);
-                if (row) {
-                    const badge = row.querySelector('[data-label="Statut"] span');
-                    if (badge) {
-                        badge.innerText = newStatus.replace('_', ' ');
-                        badge.className = `badge ${newStatus === 'Accepte' ? 'bg-success-soft text-success' : (newStatus === 'En_attente' ? 'bg-warning-soft text-warning' : 'bg-danger-soft text-danger')} px-2 py-1 rounded-3`;
-                    }
-                }
-
-                showToast(`Statut changé : ${newStatus.replace('_', ' ')}`, 'info');
+                showToast(data.message, 'Conversion réussie');
+                setTimeout(() => location.reload(), 1200);
             } else {
-                alert("Erreur de traitement : " + data.message);
+                showToast(data.message, 'Erreur de conversion');
+            }
+        });
+    };
+
+    // ========================================================
+    // 10. DUPLICATION DE DOCUMENT (Image 1)
+    // ========================================================
+    window.duplicateDocument = function(id) {
+        const url = `{{ url('admin/devis') }}/${id}/duplicate`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
             }
         })
-        .catch(err => {
-            console.error('Error updating status:', err);
-            alert("Erreur réseau lors de la mise à jour du statut : " + err.message);
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'Document dupliqué');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showToast("Erreur lors de la duplication.", 'Erreur');
+            }
         });
     };
 
-    // Statut depuis le tableau d'index
-    document.querySelectorAll('.btn-quick-status').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Évite d'ouvrir le modal de détails en même temps !
-            const id = btn.getAttribute('data-id');
-            const status = btn.getAttribute('data-status');
-            triggerStatusUpdate(id, status);
-        });
-    });
+    // ========================================================
+    // 11. SÉCURISATION DU STATUT ET PROCESSUS CRM (Image 2)
+    // ========================================================
+    window.updateDocumentStatus = function(id, statut) {
+        const url = `{{ url('admin/devis') }}/${id}/update-status`;
 
-    // Statut depuis le modal de détails
-    document.querySelectorAll('.btn-modal-status-update').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const status = btn.getAttribute('data-status');
-            if (activeDevisId) {
-                detailsModal.hide();
-                triggerStatusUpdate(activeDevisId, status);
-            }
-        });
-    });
-
-    // Action Supprimer (Sécurisée en POST URLSearchParams - M4)
-    const triggerDelete = (id, numero) => {
-        if (confirm('Êtes-vous sûr de vouloir supprimer définitivement ce document comptable de la base de données ?')) {
-            fetch(`/admin/devis/${id}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(res => {
-                if (!res.ok) {
-                    return res.text().then(text => { throw new Error(text) });
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Fermer le modal
-                    detailsModal.hide();
-
-                    // Supprimer la ligne du tableau avec un fondu lisse (Image 3)
-                    const row = document.getElementById(`devisRow${id}`);
-                    if (row) {
-                        row.style.transition = 'all 0.4s ease';
-                        row.style.opacity = '0';
-                        row.style.transform = 'translateX(20px)';
-                        setTimeout(() => { row.remove(); }, 400);
-                    }
-                    showToast(`Devis ${numero} supprimé`, 'danger');
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ statut: statut })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (statut === 'Accepte' && data.crm_action) {
+                    showToast('Statut changé : Accepté', 'Statut document', 4000);
+                    setTimeout(() => {
+                        showToast('Lead lié passé à "Gagné" et client passé à "Client"', 'Processus CRM', 5000);
+                    }, 400);
                 } else {
-                    alert("Erreur de suppression : " + data.message);
+                    showToast(data.message, 'Statut document');
                 }
-            })
-            .catch(err => {
-                console.error('Error deleting devis:', err);
-                alert("Erreur réseau lors de la suppression : " + err.message);
-            });
-        }
+                setTimeout(() => location.reload(), 2000);
+            }
+        });
     };
 
-    // Suppression rapide depuis le tableau d'index
-    document.querySelectorAll('.btn-delete-devis').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Évite d'ouvrir le modal
-            const id = btn.getAttribute('data-id');
-            const numero = btn.closest('tr').querySelector('td').innerText;
-            triggerDelete(id, numero);
-        });
-    });
+    // ========================================================
+    // 12. SUPPRESSION FLUIDE DU DOCUMENT (Image 1, 2 & Vidéo)
+    // ========================================================
+    window.triggerDeleteModal = function(id, numero) {
+        activeDevisId = id;
+        document.getElementById('delete-confirm-title').innerText = `Supprimer le document ${numero} ?`;
+        if (deleteModal) deleteModal.show();
+    };
 
-    // Suppression depuis le bouton d'action du modal de détails
-    const btnDeleteModal = document.getElementById('btnDeleteModal');
-    if (btnDeleteModal) {
-        btnDeleteModal.addEventListener('click', () => {
+    const confirmDeleteBtn = document.getElementById('btn-confirm-delete-action');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', () => {
             if (activeDevisId) {
-                const numero = document.getElementById('detailDevisNum').innerText;
-                triggerDelete(activeDevisId, numero);
+                const url = `{{ url('admin/devis') }}/${activeDevisId}/delete`;
+
+                fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (deleteModal) deleteModal.hide();
+                    if (data.success) {
+                        const targetRow = document.getElementById(`row-devis-${activeDevisId}`);
+                        if (targetRow) {
+                            targetRow.style.opacity = '0';
+                            targetRow.style.transition = 'opacity 0.6s ease-out';
+                            showToast(`Le document commercial a été supprimé du CRM.`, 'Document supprimé');
+                            setTimeout(() => {
+                                targetRow.remove();
+                                location.reload();
+                            }, 600);
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        showToast("Erreur lors de la suppression.", 'Erreur');
+                    }
+                })
+                .catch(err => {
+                    if (deleteModal) deleteModal.hide();
+                    showToast("Erreur réseau.", 'Erreur');
+                });
             }
         });
     }
 
-    // Gestion de l'affichage du sous-menu dropdown
-    document.querySelectorAll('.dropdown-submenu a.dropdown-toggle').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            element.nextElementSibling.classList.toggle('show');
-        });
-    });
+    // ========================================================
+    // 13. CONFIGURATION INITIALE DE L'EMAIL
+    // ========================================================
+    window.openEmailModal = function(devisId, email, docNumero, clientNom) {
+        document.getElementById('email-devis-id').value = devisId;
+        document.getElementById('email-destinataire').value = email || '';
+        document.getElementById('email-objet').value = `Devis ${docNumero} — Flycom Services`;
+        
+        document.getElementById('email-message').value = `Bonjour ${clientNom || ''},\n\n` +
+            `Veuillez trouver ci-joint notre devis ${docNumero}.\n\n` +
+            `Cordialement,\n` +
+            `L'équipe Flycom Services`;
 
-    // ==========================================================================
-    // 5. EXIGENCE M4 : IMPRESSION SILENCIEUSE VIA IFRAME CACHÉ
-    // ==========================================================================
-
-    // Fonction maîtresse pour déclencher l'impression sans ouvrir d'onglet blanc
-    const triggerSilentPrint = (id) => {
-        if (!id) return;
-
-        // Récupérer ou créer l'iframe masqué dans le DOM (Règle 1 & 4)
-        let iframe = document.getElementById('hiddenPrintFrame');
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'hiddenPrintFrame';
-            iframe.style.display = 'none'; // Règle 1 : Totalement invisible
-            document.body.appendChild(iframe);
-        }
-
-        // Règle 2 : Charger la vue d'impression d'origine qui s'auto-imprime
-        iframe.src = `/admin/devis/${id}/print`;
+        if (emailModal) emailModal.show();
     };
-
-    // Écouteur de clic : Bouton PDF du modal de détails (Correctif Bug N°2 ÉTAPE C)
-    const btnPrintLink = document.getElementById('btnPrintLink');
-    if (btnPrintLink && !btnPrintLink.dataset.listenerBound) {
-        btnPrintLink.dataset.listenerBound = 'true';
-        btnPrintLink.addEventListener('click', () => {
-            const id = btnPrintLink.getAttribute('data-current-id');
-            if (id) triggerSilentPrint(id);
-        });
-    }
-
-    // Écouteur de clic : Bouton PDF rapide depuis l'index (Correctif Bug N°3 ÉTAPE D)
-    document.querySelectorAll('.btn-download-pdf-quick').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Évite d'ouvrir le modal de détails en parallèle
-            const id = btn.getAttribute('data-id');
-            triggerSilentPrint(id);
-        });
-    });
-});
 </script>
 @endsection

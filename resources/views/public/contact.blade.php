@@ -28,6 +28,15 @@
 <!-- SECTION PRINCIPALE DES COORDONNÉES ET FORMULAIRE -->
 <section class="contact-main-section bg-white text-navy position-relative">
     <div class="container py-2">
+        
+        <!-- Zone d'affichage de la notification de succès verte de Laravel (M2 - UX) -->
+        @if(session('success'))
+            <div class="alert alert-success border-0 shadow-sm rounded-4 p-3.5 mb-4 text-start d-flex align-items-center gap-2" style="background-color: #ECFDF5; border: 1px solid #10B981 !important; color: #064E3B;">
+                <i class="bi bi-check-circle-fill fs-5 text-success" style="color: #10B981 !important;"></i>
+                <span class="fs-8 fw-semibold">{{ session('success') }}</span>
+            </div>
+        @endif
+
         <div class="row g-5 align-items-stretch">
             
             <!-- BLOC DE GAUCHE : COORDONNÉES (STYLÉ EXACTEMENT COMME DEMANDÉ) -->
@@ -101,7 +110,8 @@
             <!-- BLOC DE DROITE : FORMULAIRE GLACÉ (Image demandée) -->
             <div class="col-12 col-lg-7">
                 <div class="contact-form-card rounded-4 p-4 p-md-5">
-                    <form action="#" method="POST" class="row g-3">
+                    <!-- Liaison d'action sécurisée de l'API (M2 - CRM) -->
+                    <form action="{{ route('contact.store') }}" method="POST" class="row g-3">
                         @csrf
                         
                         <!-- Ligne Nom & Prénom -->
@@ -126,7 +136,7 @@
                             <input type="tel" name="telephone" class="form-control" id="inputPhone" placeholder="+242 06 XXX XX XX" required>
                         </div>
                         
-                        <!-- Service Concerné -->
+                        <!-- Service Concerné (Mapped avec id_service pour le contrôleur) -->
                         <div class="col-12">
                             <label for="inputService" class="form-label fs-8 fw-bold text-navy text-uppercase">Service concerné</label>
                             <select name="id_service" id="inputService" class="form-select" required>
@@ -145,7 +155,7 @@
                         <!-- Message -->
                         <div class="col-12">
                             <label for="inputMessage" class="form-label fs-8 fw-bold text-navy text-uppercase">Message</label>
-                            <textarea name="message" class="form-control" id="inputMessage" rows="4" placeholder="Décrivez votre projet ou besoin..."></textarea>
+                            <textarea name="message" class="form-control" id="inputMessage" rows="4" placeholder="Décrivez votre projet ou besoin..." required></textarea>
                         </div>
                         
                         <!-- Bouton d'action Bleu Royal -->
