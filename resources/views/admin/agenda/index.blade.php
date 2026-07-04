@@ -21,7 +21,7 @@
     $nextMonth = $currentMonthDate->copy()->addMonth();
 @endphp
 
-<!-- EN-TÊTE DE LA PAGE (Image 18) -->
+<!-- EN-TÊTE DE LA PAGE -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 animate-fade-in">
     <div>
         <h1 class="h3 fw-extrabold text-navy mb-1">Agenda &amp; Relances</h1>
@@ -32,7 +32,7 @@
         </p>
     </div>
     <div class="mt-3 mt-md-0">
-        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn" data-bs-toggle="modal" data-bs-target="#newRelanceModal">
+        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn" data-bs-toggle="modal" data-bs-target="#newRelanceModal" style="background-color: #00B4D8; border: none; color: #fff;">
             <i class="bi bi-calendar-plus me-1"></i> Nouvelle relance
         </button>
     </div>
@@ -81,20 +81,20 @@
                                     
                                     // Filtrer les relances prévues pour ce jour précis
                                     $relancesCeJour = $relancesDuMois->filter(function($lead) use ($currentDate) {
-                                        return $lead->prochaine_relance->toDateString() === $currentDate;
+                                        return $lead->prochaine_relance && $lead->prochaine_relance->toDateString() === $currentDate;
                                     });
                                 @endphp
 
                                 <td class="position-relative py-3 {{ $isToday ? 'calendar-today-cell' : '' }}" style="height: 100px; vertical-align: top;">
                                     <!-- Numéro du jour -->
-                                    <span class="d-block fw-bold mb-2 {{ $isToday ? 'badge bg-cyan text-navy rounded-circle p-1 d-inline-block' : 'text-navy' }}" style="{{ $isToday ? 'width: 24px; height: 24px; line-height: 16px;' : '' }}">
+                                    <span class="d-block fw-bold mb-2 {{ $isToday ? 'badge bg-cyan text-navy rounded-circle p-1 d-inline-block' : 'text-navy' }}" style="{{ $isToday ? 'width: 24px; height: 24px; line-height: 16px; background-color: #00B4D8; color: #fff;' : '' }}">
                                         {{ $day }}
                                     </span>
 
                                     <!-- Événements / Relances du jour -->
                                     <div class="d-flex flex-column gap-1 overflow-hidden" style="max-height: 60px;">
                                         @foreach($relancesCeJour as $relance)
-                                        <span class="badge bg-warning-transparent text-warning text-truncate d-block text-start fs-10 px-2 py-1 rounded-2" title="{{ $relance->client->prenom }} {{ $relance->client->nom }}">
+                                        <span class="badge bg-warning-transparent text-warning text-truncate d-block text-start fs-10 px-2 py-1 rounded-2" title="{{ $relance->client->prenom }} {{ $relance->client->nom }}" style="background-color: rgba(245, 158, 11, 0.08); color: #D97706 !important;">
                                             <i class="bi bi-circle-fill me-1" style="font-size: 5px;"></i> {{ $relance->client->prenom }} {{ substr($relance->client->nom, 0, 1) }}.
                                         </span>
                                         @endforeach
@@ -122,11 +122,11 @@
         </div>
     </div>
 
-    <!-- COLONNE DE DROITE : RELANCES EN RETARD ET DE LA SEMAINE (25% de largeur - Image 18) -->
+    <!-- COLONNE DE DROITE : RELANCES EN RETARD ET DE LA SEMAINE -->
     <div class="col-12 col-lg-3">
         <div class="d-flex flex-column gap-4 h-100">
             
-            <!-- Liste En retard (6) -->
+            <!-- Liste En retard (100% opérationnel) -->
             <div class="card border-0 shadow-sm p-4 bg-white rounded-4 flex-grow-1">
                 <h3 class="h6 fw-extrabold text-navy mb-4 d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> En retard</span>
@@ -135,15 +135,15 @@
                 
                 <div class="d-flex flex-column gap-2 overflow-y-auto" style="max-height: 280px;">
                     @forelse($relancesEnRetard as $retard)
-                    <div class="p-3 rounded-4 border-0 position-relative list-item-hover text-start" style="background-color: #FFF5F5; border: 1px solid #FED7D7 !important;">
+                    <div class="p-3 rounded-4 border-0 position-relative list-item-hover text-start" style="background-color: #FFF5F5; border: 1px solid #FED7D7 !important; transition: all 0.4s ease-out;">
                         <span class="badge bg-danger text-white fs-10 fw-bold px-2 py-0.5 rounded-pill mb-1">En retard</span>
                         <strong class="d-block text-navy fs-8 mt-1">{{ $retard->client->prenom }} {{ $retard->client->nom }}</strong>
                         <small class="text-muted fs-10 d-block mb-2">Planifiée le : {{ $retard->prochaine_relance->format('d/m/Y H:i') }}</small>
                         
-                        <!-- Actions de relance immédiate (Conforme à l'image) -->
+                        <!-- Actions de relance immédiates liées au JS asynchrone -->
                         <div class="d-flex gap-2">
-                            <button class="btn btn-success btn-sm rounded-pill fs-10 px-3 fw-bold"><i class="bi bi-check-lg"></i> Fait</button>
-                            <button class="btn btn-outline-secondary btn-sm rounded-pill fs-10 px-3 fw-semibold">Demain</button>
+                            <button class="btn btn-success btn-sm rounded-pill fs-10 px-3 fw-bold btn-agenda-done" data-id="{{ $retard->id_lead }}"><i class="bi bi-check-lg"></i> Fait</button>
+                            <button class="btn btn-outline-secondary btn-sm rounded-pill fs-10 px-3 fw-semibold btn-agenda-tomorrow" data-id="{{ $retard->id_lead }}">Demain</button>
                         </div>
                     </div>
                     @empty
@@ -164,9 +164,9 @@
                     <div class="p-3 bg-light rounded-4 border border-light d-flex justify-content-between align-items-center list-item-hover">
                         <div>
                             <span class="fw-bold d-block fs-8 text-navy">{{ $semaine->client->prenom }} {{ $semaine->client->nom }}</span>
-                            <small class="text-muted fs-10">{{ $semaine->prochaine_relance->format('l à H:i') }}</small>
+                            <small class="text-muted fs-10">{{ $semaine->prochaine_relance ? $semaine->prochaine_relance->format('l à H:i') : '—' }}</small>
                         </div>
-                        <a href="tel:{{ $semaine->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle"><i class="bi bi-telephone-fill"></i></a>
+                        <a href="tel:{{ $semaine->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle" style="background-color: #00B4D8; border: none; color: #fff;"><i class="bi bi-telephone-fill"></i></a>
                     </div>
                     @empty
                     <div class="text-center py-4 my-auto">
@@ -183,7 +183,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL : PROGRAMMER UNE RELANCE (Image 17)  -->
+<!-- MODAL : PROGRAMMER UNE RELANCE             -->
 <!-- ========================================== -->
 <div class="modal fade" id="newRelanceModal" tabindex="-1" aria-labelledby="newRelanceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -197,10 +197,10 @@
                 @csrf
                 <div class="modal-body px-4 py-4 row g-3 fs-8">
                     
-                    <!-- Sélection de l'opportunité (Lead) -->
+                    <!-- Sélection du Lead -->
                     <div class="col-12">
                         <label for="id_lead" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Lead à relancer *</label>
-                        <select name="id_lead" id="id_lead" class="form-select bg-light border-light py-2 fs-8" required>
+                        <select name="id_lead" id="id_lead" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow: none !important;">
                             <option value="" selected disabled>Sélectionner un lead</option>
                             @foreach($activeLeads as $lead)
                             <option value="{{ $lead->id_lead }}">{{ $lead->client->prenom }} {{ $lead->client->nom }} ({{ $lead->message_origine }})</option>
@@ -211,25 +211,25 @@
                     <!-- Date de relance -->
                     <div class="col-md-6">
                         <label for="date_relance" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Date de relance *</label>
-                        <input type="date" name="date_relance" id="date_relance" class="form-control bg-light border-light py-2 fs-8" required>
+                        <input type="date" name="date_relance" id="date_relance" class="form-control bg-light border-light py-2 fs-8" required style="box-shadow: none !important;">
                     </div>
 
                     <!-- Heure de relance -->
                     <div class="col-md-6">
                         <label for="heure_relance" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Heure *</label>
-                        <input type="time" name="heure_relance" id="heure_relance" class="form-control bg-light border-light py-2 fs-8" value="09:00" required>
+                        <input type="time" name="heure_relance" id="heure_relance" class="form-control bg-light border-light py-2 fs-8" value="09:00" required style="box-shadow: none !important;">
                     </div>
 
                     <!-- Note de rappel -->
                     <div class="col-12">
                         <label for="note" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Note de rappel (optionnel)</label>
-                        <textarea name="note" id="note" class="form-control bg-light border-light py-2 fs-8" rows="4" placeholder="Ex: Vérifier disponibilité technicien..."></textarea>
+                        <textarea name="note" id="note" class="form-control bg-light border-light py-2 fs-8" rows="4" placeholder="Ex: Vérifier disponibilité technicien..." style="box-shadow: none !important;"></textarea>
                     </div>
 
                 </div>
                 <div class="modal-footer border-top border-light px-4 py-3">
                     <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white">Programmer</button>
+                    <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none; width: auto !important;">Programmer</button>
                 </div>
             </form>
         </div>
@@ -244,9 +244,117 @@
     .calendar-table td, .calendar-table th {
         border: 1px solid #E2E8F0 !important;
     }
-    /* Cellule du jour actuel mise en valeur (Image 18) */
     .calendar-today-cell {
         background-color: rgba(0, 210, 244, 0.03) !important;
     }
 </style>
+
+<!-- CODE SCRIPT INTERACTIF DE TRAITEMENT ET ANIMATION (M3 - 100% opérationnel) -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Déclencheur de Toast de notification synchronisé avec le layout principal
+    const showAgendaNotification = (message, type = 'success') => {
+        if (window.showToast) {
+            window.showToast(message, type === 'success' ? 'Relance effectuée' : 'Relance reportée');
+        } else {
+            alert(message);
+        }
+    };
+
+    // 1. GESTION DU CLIC "FAIT" (Marquer comme terminé et archiver l'historique d'interaction - MLD)
+    document.querySelectorAll('.btn-agenda-done').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const leadId = btn.getAttribute('data-id');
+            const card = btn.closest('.list-item-hover');
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+
+            fetch(`/admin/agenda/${leadId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Erreur de communication avec le serveur");
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAgendaNotification(data.message, 'success');
+                    
+                    // Effet de transition fluide avant rechargement (UX)
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(50px)';
+                        card.style.transition = 'all 0.4s ease-out';
+                        setTimeout(() => {
+                            card.remove();
+                            location.reload(); // Recharger pour rafraîchir le calendrier dynamique
+                        }, 400);
+                    } else {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="bi bi-check-lg"></i> Fait`;
+                console.error("Flycom Agenda Action Error:", err);
+            });
+        });
+    });
+
+    // 2. GESTION DU CLIC "DEMAIN" (Reporter de 24 heures de manière automatique)
+    document.querySelectorAll('.btn-agenda-tomorrow').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const leadId = btn.getAttribute('data-id');
+            const card = btn.closest('.list-item-hover');
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+
+            fetch(`/admin/agenda/${leadId}/postpone`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Erreur de communication avec le serveur");
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAgendaNotification(data.message, 'info');
+                    
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(50px)';
+                        card.style.transition = 'all 0.4s ease-out';
+                        setTimeout(() => {
+                            card.remove();
+                            location.reload();
+                        }, 400);
+                    } else {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = `Demain`;
+                console.error("Flycom Agenda Action Error:", err);
+            });
+        });
+    });
+
+});
+</script>
 @endsection

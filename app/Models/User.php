@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property string $password
  * @property string $role
+ * @property string|null $avatar
  * @property \Illuminate\Support\Carbon|null $derniere_connexion
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -22,27 +23,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read int|null $interactions_count
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereDerniereConnexion($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmail($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmailVerifiedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereNomUser($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePassword($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePrenomUser($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRole($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
  * @mixin \Eloquent
  */
 class User extends Authenticatable
 {
     use Notifiable;
 
-    // Les champs que le CRM est autorisé à insérer ou modifier en SQL
+    // Ajout du champ 'avatar' pour permettre sa sauvegarde via l'ORM Eloquent (MLD)
     protected $fillable = [
         'nom_user',
         'prenom_user',
@@ -50,6 +37,7 @@ class User extends Authenticatable
         'password',
         'role',
         'derniere_connexion',
+        'avatar', 
     ];
 
     protected $hidden = [
@@ -59,11 +47,11 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed', // Gère automatiquement le hachage sécurisé BCrypt du mot de passe
+        'password' => 'hashed', 
         'derniere_connexion' => 'datetime',
     ];
 
-    // Relation : Un utilisateur (commercial) du CRM peut rédiger plusieurs interactions
+    // Relation : Un utilisateur du CRM peut rédiger plusieurs interactions
     public function interactions(): HasMany
     {
         return $this->hasMany(Interaction::class, 'id_user');

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Lead;
 use App\Models\Client;
 use App\Models\Service;
+use App\Models\Interaction;
 use Carbon\Carbon;
 
 class LeadController extends Controller
@@ -26,8 +27,8 @@ class LeadController extends Controller
 
         if ($search) {
             $query->whereHas('client', function ($q) use ($search) {
-                $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('prenom', 'like', "%{$search}%");
+                $q->where('nom', 'like', '%' . $search . '%')
+                  ->orWhere('prenom', 'like', '%' . $search . '%');
             });
         }
 
@@ -37,32 +38,33 @@ class LeadController extends Controller
 
         $allLeads = $query->latest()->get();
 
+        // Répartir les leads par colonnes de statut
         $kanbanLeads = [
-            'Nouveau'       => $allLeads->where('statut', 'Nouveau'),
-            'Contacte'      => $allLeads->where('statut', 'Contacte'),
-            'Devis_envoye'  => $allLeads->where('statut', 'Devis_envoye'),
-            'Negociation'   => $allLeads->where('statut', 'Negociation'),
-            'Gagne'         => $allLeads->where('statut', 'Gagne'),
-            'Perdu'         => $allLeads->where('statut', 'Perdu'),
+            'Nouveau'      => $allLeads->where('statut', 'Nouveau'),
+            'Contacte'     => $allLeads->where('statut', 'Contacte'),
+            'Devis_envoye' => $allLeads->where('statut', 'Devis_envoye'),
+            'Negociation'  => $allLeads->where('statut', 'Negociation'),
+            'Gagne'        => $allLeads->where('statut', 'Gagne'),
+            'Perdu'        => $allLeads->where('statut', 'Perdu'),
         ];
 
-        return view('admin.leads.index', compact('clients', 'services', 'allLeads', 'kanbanLeads', 'search', 'sourceFilter'));
+        return view('admin.leads.index', compact('allLeads', 'clients', 'services', 'kanbanLeads', 'search', 'sourceFilter'));
     }
 
     /**
-     * 2. Créer une nouvelle opportunité (Store Lead)
+     * 2. Création manuelle d'un lead (M3)
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'id_client'             => ['required', 'exists:clients,id_client'],
-            'source'                => ['required', 'in:Site_web,WhatsApp,Chatbot,Appel_direct,Recommandation,Email'],
-            'priorite'              => ['required', 'in:Haute,Normale,Basse'],
-            'statut_initial'        => ['required', 'in:Nouveau,Contacte,Devis_envoye,Negociation'],
-            'prochaine_relance'     => ['nullable', 'date'],
-            'services_concernes'    => ['required', 'array', 'min:1'],
-            'services_concernes.*'  => ['exists:services,id_service'],
-            'message'               => ['nullable', 'string', 'max:500'],
+            'id_client' => ['required', 'exists:clients,id_client'],
+            'source' => ['required', 'string'],
+            'priorite' => ['required', 'string'],
+            'statut_initial' => ['required', 'string'],
+            'prochaine_relance' => ['nullable', 'date'],
+            'message' => ['nullable', 'string', 'max:500'],
+            'services_concernes' => ['required', 'array', 'min:1'],
+            'services_concernes.*' => ['exists:services,id_service']
         ]);
 
         $lead = Lead::create([
@@ -80,7 +82,7 @@ class LeadController extends Controller
     }
 
     /**
-     * 3. Mettre à jour le statut au Glisser-Déposer (AJAX Kanban Drag & Drop)
+     * 3. Mettre à jour le statut au Glisser-Déposer (AJAX Kanban)
      */
     public function updateStatus(Request $request, $id)
     {
@@ -99,7 +101,41 @@ class LeadController extends Controller
     }
 
     /**
-     * 4. API de détails d'une opportunité pour l'affichage du modal d'aperçu
+     * 4. Enregistrer une nouvelle interaction directement sur un lead (Nouveau - 100% fonctionnel)
+     */
+    public function storeInteraction(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'type_canal' => ['required', 'in:Appel,WhatsApp,Email,Rendez-vous,Visite_terrain,Chatbot'],
+            'note'       => ['required', 'string'],
+        ]);
+
+        $lead = Lead::findOrFail($id);
+
+        // Créer l'interaction d'historique de garde (MLD)
+        $interaction = Interaction::create([
+            'id_client'   => $lead->id_client,
+            'id_user'     => auth()->id(),
+            'id_lead'     => $lead->id_lead,
+            'type_canal'  => $validated['type_canal'],
+            'date'        => now(),
+            'note'        => $validated['note'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'L\'interaction a bien été ajoutée au journal du prospect.',
+            'interaction' => [
+                'type_canal' => str_replace('_', ' ', $interaction->type_canal),
+                'note'       => $interaction->note,
+                'date'       => $interaction->date->format('d/m/Y H:i'),
+                'user_name'  => auth()->user()->prenom_user . ' ' . auth()->user()->nom_user
+            ]
+        ]);
+    }
+
+    /**
+     * 5. API de détails d'un lead (AJAX Modal)
      */
     public function getDetails($id)
     {
@@ -110,7 +146,7 @@ class LeadController extends Controller
             'client_prenom'    => $lead->client->prenom,
             'client_nom'       => $lead->client->nom,
             'client_telephone' => $lead->client->telephone,
-            'client_email'     => $lead->client->email ?? '—',
+            'client_email'     => $lead->client->email ?? 'Aucun email renseigné',
             'message_origine'  => $lead->message_origine ?? 'Aucune spécification de message renseignée.',
             'statut'           => str_replace('_', ' ', $lead->statut),
             'priorite'         => $lead->priorite,
@@ -119,9 +155,9 @@ class LeadController extends Controller
             'services'         => $lead->services->map(function ($service) {
                 return $service->nom_service;
             }),
-            'interactions'     => $lead->interactions->map(function ($interaction) {
+            'interactions'     => $lead->interactions->sortByDesc('date')->values()->map(function ($interaction) {
                 return [
-                    'type_canal' => $interaction->type_canal,
+                    'type_canal' => str_replace('_', ' ', $interaction->type_canal),
                     'note'       => $interaction->note,
                     'date'       => $interaction->date->format('d/m/Y H:i'),
                     'user_name'  => $interaction->user->prenom_user . ' ' . $interaction->user->nom_user
@@ -131,16 +167,13 @@ class LeadController extends Controller
     }
 
     /**
-     * 5. EXPORTATION DE LA BASE DE DONNÉES AU FORMAT CSV (Conforme à l'image)
+     * 6. Exportation au format CSV
      */
     public function export()
     {
-        // Extraction ordonnée de tous les prospects avec leurs liaisons (MLD)
         $leads = Lead::with(['client', 'services'])->latest()->get();
-
         $fileName = 'leads_export_' . Carbon::now()->format('Y_m_d') . '.csv';
 
-        // Configuration des en-têtes HTTP pour forcer le téléchargement du fichier CSV
         $headers = [
             "Content-type"        => "text/csv; charset=UTF-8",
             "Content-Disposition" => "attachment; filename=$fileName",
@@ -151,38 +184,23 @@ class LeadController extends Controller
 
         $callback = function() use($leads) {
             $file = fopen('php://output', 'w');
-            
-            // Injection du BOM UTF-8 indispensable pour qu'Excel ouvre directement le fichier avec les accents (é, à, etc.)
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // En-têtes des colonnes (Identique à votre image)
-            fputcsv($file, [
-                'Client', 
-                'Téléphone', 
-                'Statut', 
-                'Priorité', 
-                'Source', 
-                'Services', 
-                'Date création', 
-                'Prochaine relance', 
-                'Message'
-            ], ';'); // Séparateur point-virgule pour une compatibilité Excel francophone immédiate
+            fputcsv($file, ['Client', 'Téléphone', 'Statut', 'Priorité', 'Source', 'Services', 'Date création', 'Prochaine relance', 'Message'], ';');
 
-            // Remplissage des lignes de données
             foreach ($leads as $lead) {
                 fputcsv($file, [
                     $lead->client->prenom . ' ' . $lead->client->nom,
                     $lead->client->telephone,
-                    str_replace('_', ' ', $lead->statut), // Transforme Devis_envoye en Devis envoye (Conforme)
+                    str_replace('_', ' ', $lead->statut),
                     $lead->priorite,
                     str_replace('_', ' ', $lead->source),
-                    $lead->services->pluck('nom_service')->join(', '), // Concatène les multiples services s'il y en a
+                    $lead->services->pluck('nom_service')->join(', '),
                     $lead->created_at->format('d/m/Y'),
                     $lead->prochaine_relance ? $lead->prochaine_relance->format('d/m/Y') : '-',
                     $lead->message_origine ?? ''
                 ], ';');
             }
-
             fclose($file);
         };
 

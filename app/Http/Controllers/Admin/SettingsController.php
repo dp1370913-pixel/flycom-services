@@ -9,7 +9,8 @@ use App\Models\User;
 use App\Models\Interaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Password;
 use Smalot\PdfParser\Parser;
 
 class SettingsController extends Controller
@@ -17,23 +18,52 @@ class SettingsController extends Controller
     // 1. Charger l'index des paramètres
     public function index()
     {
-        // Extraction de toutes les variables clés-valeurs de la table 'config'
         $configs = Config::all()->pluck('valeur', 'cle')->toArray();
-
-        // Extraction de tous les utilisateurs (humains et bots) enregistrés
         $users = User::orderBy('nom_user')->get();
 
-        // Extraction du journal d'activité de l'IA (Canal Chatbot & WhatsApp)
         $iaLogs = Interaction::with('client')
             ->whereIn('type_canal', ['Chatbot', 'WhatsApp'])
             ->orderBy('date', 'desc')
-            ->take(20) // Limite aux 20 dernières entrées pour la performance
+            ->take(20) 
             ->get();
 
         return view('admin.settings.index', compact('configs', 'users', 'iaLogs'));
     }
 
-    // 2. Mettre à jour les informations d'entreprise
+    // 2. Traiter la modification d'avatar (Corrigé et sécurisé via DB directe)
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar_file' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'] // Limite à 2 Mo
+        ]);
+
+        $user = auth()->user();
+
+        if ($request->hasFile('avatar_file')) {
+            // Nettoyage de l'ancien fichier d'avatar physique s'il existe déjà sur le serveur
+            if ($user->avatar && file_exists(public_path($user->avatar))) {
+                @unlink(public_path($user->avatar));
+            }
+
+            // Générer un dossier d'avatars s'il n'existe pas encore
+            if (!file_exists(public_path('assets/avatars'))) {
+                mkdir(public_path('assets/avatars'), 0755, true);
+            }
+
+            $file = $request->file('avatar_file');
+            $fileName = 'avatar_user_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('assets/avatars'), $fileName);
+            
+            // Mise à jour directe et sécurisée en base de données pour cibler uniquement la colonne d'avatar (Bypasse l'erreur de colonne d'image)
+            DB::table('users')->where('id', $user->id)->update([
+                'avatar' => 'assets/avatars/' . $fileName
+            ]);
+        }
+
+        return redirect()->route('admin.settings.index')->with('success', 'Votre avatar de profil a bien été mis à jour.');
+    }
+
+    // 3. Mettre à jour les informations d'entreprise
     public function updateEntreprise(Request $request)
     {
         $validated = $request->validate([
@@ -51,7 +81,7 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'Les informations d\'entreprise ont bien été mises à jour.');
     }
 
-    // 3. Mettre à jour la configuration fiscale
+    // 4. Mettre à jour la configuration fiscale
     public function updateFiscal(Request $request)
     {
         $validated = $request->validate([
@@ -65,7 +95,7 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'La configuration fiscale et monétaire a bien été enregistrée.');
     }
 
-    // 4. Mettre à jour les horaires et l'activation de l'IA WhatsApp
+    // 5. Mettre à jour l'activation de l'IA WhatsApp
     public function updateIA(Request $request)
     {
         $validated = $request->validate([
@@ -74,7 +104,6 @@ class SettingsController extends Controller
             'jours_ouvrables' => ['required', 'string', 'max:100'],
         ]);
 
-        // Gérer le commutateur ON/OFF de l'agent IA
         $iaActive = $request->has('whatsapp_ia_active') ? 'true' : 'false';
 
         Config::updateOrCreate(['cle' => 'whatsapp_ia_active'], ['valeur' => $iaActive]);
@@ -85,37 +114,32 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'Les paramètres de l\'agent IA WhatsApp ont bien été modifiés.');
     }
 
-    // 4.1 Mettre à jour la configuration de l'IA et de la base de connaissances du Site Web (Avec gestion d'import PDF)
+    // 6. Mettre à jour l'IA du site web (Avec import PDF)
     public function updateWebIA(Request $request)
     {
         $validated = $request->validate([
             'gemini_model'           => ['required', 'string', 'max:50'],
             'chatbot_system_prompt'  => ['required', 'string'],
             'chatbot_knowledge_base' => ['nullable', 'string'],
-            'chatbot_knowledge_pdf'  => ['nullable', 'file', 'mimes:pdf', 'max:10240'], // Max 10 Mo (Image 21)
+            'chatbot_knowledge_pdf'  => ['nullable', 'file', 'mimes:pdf', 'max:10240'], 
         ]);
 
-        // Traiter l'extraction de texte du fichier PDF s'il est fourni (Image 21)
         if ($request->hasFile('chatbot_knowledge_pdf')) {
             try {
                 $pdfFile = $request->file('chatbot_knowledge_pdf');
                 
-                // Instanciation du parseur de PDF
                 $parser = new Parser();
                 $pdf = $parser->parseFile($pdfFile->getPathname());
                 $extractedText = $pdf->getText();
 
-                // Nettoyage des espaces et retours à la ligne excessifs pour optimiser le contexte de l'IA
                 $extractedText = preg_replace('/\s+/', ' ', $extractedText);
                 $extractedText = trim($extractedText);
 
-                // Enregistrer le texte extrait en base
                 Config::updateOrCreate(
                     ['cle' => 'chatbot_knowledge_pdf_text'],
                     ['valeur' => $extractedText]
                 );
 
-                // Mémoriser le nom du fichier d'origine pour l'affichage dans le CRM
                 Config::updateOrCreate(
                     ['cle' => 'chatbot_knowledge_pdf_filename'],
                     ['valeur' => $pdfFile->getClientOriginalName()]
@@ -127,34 +151,18 @@ class SettingsController extends Controller
 
         $chatbotActive = $request->has('chatbot_active') ? 'true' : 'false';
 
-        Config::updateOrCreate(
-            ['cle' => 'chatbot_active'],
-            ['valeur' => $chatbotActive]
-        );
+        Config::updateOrCreate(['cle' => 'chatbot_active'], ['valeur' => $chatbotActive]);
+        Config::updateOrCreate(['cle' => 'gemini_model'], ['valeur' => $validated['gemini_model']]);
+        Config::updateOrCreate(['cle' => 'chatbot_system_prompt'], ['valeur' => $validated['chatbot_system_prompt']]);
+        Config::updateOrCreate(['cle' => 'chatbot_knowledge_base'], ['valeur' => $validated['chatbot_knowledge_base'] ?? '']);
 
-        Config::updateOrCreate(
-            ['cle' => 'gemini_model'],
-            ['valeur' => $validated['gemini_model']]
-        );
-
-        Config::updateOrCreate(
-            ['cle' => 'chatbot_system_prompt'],
-            ['valeur' => $validated['chatbot_system_prompt']]
-        );
-
-        Config::updateOrCreate(
-            ['cle' => 'chatbot_knowledge_base'],
-            ['valeur' => $validated['chatbot_knowledge_base'] ?? '']
-        );
-
-        // Vider les caches pour une application immédiate des réglages d'IA
         Artisan::call('view:clear');
         Artisan::call('config:clear');
 
-        return redirect()->route('admin.settings.index')->with('success', 'La configuration de l\'assistant IA du site vitrine et sa base de connaissances ont bien été enregistrées.');
+        return redirect()->route('admin.settings.index')->with('success', 'La configuration de l\'assistant IA du site vitrine a bien été enregistrée.');
     }
 
-    // 5. Créer un nouvel utilisateur / collaborateur
+    // 7. Créer un nouveau collaborateur
     public function storeUser(Request $request)
     {
         $validated = $request->validate([
@@ -162,7 +170,7 @@ class SettingsController extends Controller
             'nom_user'    => ['required', 'string', 'max:100'],
             'email'       => ['required', 'email', 'max:150', 'unique:users,email'],
             'role'        => ['required', 'in:Admin,Commercial,Lecture,System_Bot'],
-            'password'    => ['required', 'string', 'min:6'],
+            'password'    => ['required', 'string', Password::min(8)->letters()->numbers()->symbols()],
         ]);
 
         User::create([
