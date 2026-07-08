@@ -36,17 +36,15 @@ Route::post('/api/chatbot/message', [ChatbotController::class, 'handleMessage'])
 |--------------------------------------------------------------------------
 | 2. ROUTES D'AUTHENTIFICATION SÉCURISÉES (AVEC 2FA ET RATE LIMITING)
 |--------------------------------------------------------------------------
-| - Obfuscation : /login devient /espace-securise-flycom
-| - Rate Limiting : Limité à 5 tentatives de connexion par minute par IP
 */
 Route::get('/espace-securise-flycom', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/espace-securise-flycom', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Double Authentification (2FA) - OTP par Email (Sécurisées par Rate Limiting)
+// Double Authentification (2FA) - OTP par Email
 Route::get('/verify-identity', [AuthController::class, 'show2FAForm'])->name('2fa.index');
 Route::post('/verify-identity', [AuthController::class, 'verify2FA'])->name('2fa.verify')->middleware('throttle:5,1');
-Route::post('/verify-identity/resend', [AuthController::class, 'resendOTP'])->name('2fa.resend')->middleware('throttle:3,1'); // Limité à 3 renvois par minute (Nouveau)
+Route::post('/verify-identity/resend', [AuthController::class, 'resendOTP'])->name('2fa.resend')->middleware('throttle:3,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -62,10 +60,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         
-        // Route d'API pour la cloche de notification dynamique (Module M5)
+        // API pour la cloche de notification dynamique (Module M5)
         Route::get('/notifications', [DashboardController::class, 'getNotifications'])->name('admin.notifications');
         
-        // Route d'API pour la barre de recherche globale unifiée
+        // API pour la barre de recherche globale unifiée
         Route::get('/global-search', [DashboardController::class, 'globalSearch'])->name('admin.globalSearch');
         
         // Profil personnel
@@ -79,6 +77,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         
         // Clients
         Route::get('/clients', [ClientController::class, 'index'])->name('admin.clients.index');
+        Route::get('/clients/{id}/details', [ClientController::class, 'getDetails'])->name('admin.clients.details');
         
         // Devis & Factures
         Route::get('/devis', [DevisController::class, 'index'])->name('admin.devis.index');
@@ -97,42 +96,48 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // ────────────────────────────────────────────────────────────
     Route::middleware(['role:Admin,Commercial'])->group(function () {
         
-        // Création et statut des Leads + Ajout d'interactions
+        // Actions Leads
         Route::post('/leads', [LeadController::class, 'store'])->name('admin.leads.store');
         Route::post('/leads/{id}/update-status', [LeadController::class, 'updateStatus'])->name('admin.leads.updateStatus');
         Route::post('/leads/{id}/interaction', [LeadController::class, 'storeInteraction'])->name('admin.leads.storeInteraction');
+        Route::post('/leads/{id}/update', [LeadController::class, 'update'])->name('admin.leads.update');
 
-        // Création et import CSV des Clients
+        // Actions Clients
         Route::post('/clients', [ClientController::class, 'store'])->name('admin.clients.store');
+        Route::post('/clients/{id}/update', [ClientController::class, 'update'])->name('admin.clients.update');
         Route::post('/clients/import', [ClientController::class, 'importCSV'])->name('admin.clients.import');
 
-        // Création, conversion, duplication et envoi de Devis
+        // Actions Devis
         Route::post('/devis', [DevisController::class, 'store'])->name('admin.devis.store');
         Route::post('/devis/{id}/convert', [DevisController::class, 'convertToInvoice'])->name('admin.devis.convert');
         Route::post('/devis/{id}/send-email', [DevisController::class, 'sendEmail'])->name('admin.devis.sendEmail');
         Route::post('/devis/{id}/update-status', [DevisController::class, 'updateStatus'])->name('admin.devis.updateStatus');
         Route::post('/devis/{id}/duplicate', [DevisController::class, 'duplicate'])->name('admin.devis.duplicate');
 
-        // Planification d'agenda
+        // Actions Agenda
         Route::post('/agenda', [AgendaController::class, 'store'])->name('admin.agenda.store');
         Route::post('/agenda/{id}/complete', [AgendaController::class, 'complete'])->name('admin.agenda.complete');
         Route::post('/agenda/{id}/postpone', [AgendaController::class, 'postpone'])->name('admin.agenda.postpone');
     });
 
     // ────────────────────────────────────────────────────────────
-    // SOUS-GROUPE C : ACTIONS SÉCURISÉES (Admin uniquement)
+    // SOUS-GROUPE C : ACTIONS CRITIQUES & PARAMÈTRES (Admin uniquement)
     // ────────────────────────────────────────────────────────────
     Route::middleware(['role:Admin'])->group(function () {
         
-        // Seul l'administrateur peut supprimer définitivement un devis
+        // Devis et Factures
         Route::delete('/devis/{id}/delete', [DevisController::class, 'delete'])->name('admin.devis.delete');
 
-        // Seul l'administrateur peut créer, modifier ou supprimer des services du catalogue
+        // Clients & Leads (Suppression réservée à l'Admin)
+        Route::delete('/clients/{id}/delete', [ClientController::class, 'delete'])->name('admin.clients.delete');
+        Route::delete('/leads/{id}/delete', [LeadController::class, 'delete'])->name('admin.leads.delete');
+
+        // Catalogue Services
         Route::post('/services-catalogue', [ServiceController::class, 'store'])->name('admin.services.store');
         Route::post('/services-catalogue/{id}/update', [ServiceController::class, 'update'])->name('admin.services.update');
         Route::delete('/services-catalogue/{id}/delete', [ServiceController::class, 'delete'])->name('admin.services.delete');
 
-        // Seul l'administrateur peut exporter les fichiers CSV contenant les données sensibles
+        // Exportation des données sensibles (Uniquement par l'Admin)
         Route::get('/leads/export', [LeadController::class, 'export'])->name('admin.leads.export');
         Route::get('/clients/export', [ClientController::class, 'export'])->name('admin.clients.export');
 

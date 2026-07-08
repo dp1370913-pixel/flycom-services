@@ -4,146 +4,143 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Models\Config;
 use App\Models\Conversation;
 use App\Models\MessageConversation;
-use App\Models\Service;
-use App\Models\Config;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class ChatbotController extends Controller
 {
     /**
-     * Traite les requêtes de messages du chatbot public de manière dynamique.
+     * Traiter les messages entrants du widget de chat de la plateforme vitrine (Module M7)
      */
     public function handleMessage(Request $request)
     {
-        // 1. Validation de l'entrée utilisateur
         $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
-            'conversation_id' => ['nullable', 'integer']
+            'message'         => ['required', 'string', 'max:1000'],
+            'conversation_id' => ['nullable', 'exists:conversations,id_conversation']
         ]);
 
-        $messageText = $request->input('message');
+        $userMessage = $request->input('message');
         $conversationId = $request->input('conversation_id');
 
-        // Récupérer les configurations d'IA depuis la table locale 'config'
-        $configs = Config::whereIn('cle', [
-            'chatbot_active',
-            'gemini_model',
-            'chatbot_system_prompt',
-            'chatbot_knowledge_base',
-            'chatbot_knowledge_pdf_text' // Ajout de la base de connaissances PDF extraite
-        ])->pluck('valeur', 'cle')->toArray();
-
-        // RÈGLE DE SÉCURITÉ : Vérifier si l'IA est désactivée par l'administrateur
-        $isActive = $configs['chatbot_active'] ?? 'true';
-        if ($isActive === 'false') {
-            return response()->json([
-                'success' => true,
-                'reply' => "L'assistant virtuel est actuellement hors-ligne. Un conseiller de Flycom Services prendra le relais rapidement.",
-                'id_conversation' => $conversationId
-            ]);
-        }
-
-        // 2. Récupérer ou créer la session de conversation Web
-        if ($conversationId) {
-            $conversation = Conversation::find($conversationId);
-        }
-
-        if (empty($conversation) || $conversation->statut !== 'En_cours') {
-            $conversation = Conversation::create([
-                'id_client'  => null,
+        // 1. Initialiser ou récupérer la session de conversation (M3)
+        $conversation = DB::transaction(function () use ($conversationId) {
+            if ($conversationId) {
+                return Conversation::find($conversationId);
+            }
+            
+            return Conversation::create([
+                'id_client'  => null, // Le client est anonyme tant qu'il ne s'est pas identifié
                 'canal'      => 'Chatbot_site',
                 'statut'     => 'En_cours',
                 'date_debut' => now()
             ]);
-        }
+        });
 
-        // 3. Enregistrer le message de l'internaute dans votre base locale (CRM)
+        // Enregistrer le message de l'internaute dans l'historique (MLD)
         MessageConversation::create([
             'id_conversation' => $conversation->id_conversation,
             'expediteur'      => 'Client',
-            'contenu'         => $messageText,
+            'contenu'         => $userMessage,
             'horodatage'      => now()
         ]);
 
-        // 4. Récupérer le catalogue de services de Flycom pour guider l'IA
-        $services = Service::where('actif', true)->get(['nom_service', 'prix_indicatif', 'description']);
-        $catalogue = "";
-        foreach ($services as $service) {
-            $catalogue .= "- {$service->nom_service} : " . number_format($service->prix_indicatif, 0, ',', ' ') . " FCFA. {$service->description}\n";
-        }
-
-        // Récupérer le prompt système et la base de connaissances personnalisés par l'admin
-        $defaultPrompt = $configs['chatbot_system_prompt'] ?? "Tu es l'assistant virtuel de Flycom Services à Brazzaville. Reste courtois, professionnel et très concis (2-3 phrases maximum).";
+        // 2. Extraire la configuration d'Intelligence Artificielle paramétrée en d'administration (Module M7)
+        $configs = Config::all()->pluck('valeur', 'cle')->toArray();
+        $apiKey = env('GEMINI_API_KEY');
+        $model = $configs['gemini_model'] ?? 'gemini-1.5-flash';
+        
+        $systemPrompt = $configs['chatbot_system_prompt'] ?? "Tu es l'assistant virtuel de Flycom Services à Brazzaville. Reste courtois, professionnel et très concis.";
         $knowledgeBase = $configs['chatbot_knowledge_base'] ?? "";
-        $pdfKnowledge = $configs['chatbot_knowledge_pdf_text'] ?? ""; // Contenu du PDF
+        $pdfContent = $configs['chatbot_knowledge_pdf_text'] ?? "";
 
-        // Assemblage dynamique du prompt complet pour Gemini (Incorpore la base de connaissances textuelle et PDF)
-        $systemInstruction = $defaultPrompt . "\n\n" .
-                             "BASE DE CONNAISSANCES TEXTUELLE COMPLÉMENTAIRE DE L'ENTREPRISE :\n" . $knowledgeBase . "\n\n" .
-                             "INFORMATIONS TECHNIQUES EXTRAITES DES DOCUMENTS INTERNES (PDF) :\n" . $pdfKnowledge . "\n\n" .
-                             "SERVICES OFFICIELS ET TARIFS :\n" . $catalogue;
+        // Assemblage unifié du contexte de connaissances de l'IA (RAG)
+        $fullContext = $systemPrompt . "\n\n" .
+                       "── CONNAISSANCES ENTREPRISE (BASE DE DONNÉES) ──\n" . $knowledgeBase . "\n\n" .
+                       "── CONNAISSANCES SUPPLÉMENTAIRES (FICHIERS TECHNIQUES PDF IMPORTÉS) ──\n" . $pdfContent;
 
-        // Configuration dynamique du modèle et de l'URL
-        $model = $configs['gemini_model'] ?? 'gemini-2.5-flash';
-        $apiKey = config('services.gemini.key');
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        $reply = "";
 
-        $aiReply = null;
+        // 3. Traitement de la réponse de l'IA
+        if (!empty($apiKey)) {
+            // Appel direct à l'API REST officielle de Google Gemini (sans dépendances lourdes)
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
-        try {
-            // Appel à l'API Gemini avec force-resolve IPv4 et bypass SSL (développement local)
-            $response = Http::withOptions([
-                'verify' => false,
-                'curl'   => [
-                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                    CURLOPT_TIMEOUT   => 15,
-                ]
-            ])->post($url, [
-                'contents' => [
-                    [
-                        'role' => 'user',
+            try {
+                $response = Http::timeout(10)->post($url, [
+                    'contents' => [
+                        [
+                            'role' => 'user',
+                            'parts' => [
+                                ['text' => "Message de l'internaute : " . $userMessage]
+                            ]
+                        ]
+                    ],
+                    'systemInstruction' => [
                         'parts' => [
-                            ['text' => $messageText]
+                            ['text' => $fullContext]
                         ]
                     ]
-                ],
-                'systemInstruction' => [
-                    'parts' => [
-                        ['text' => $systemInstruction]
-                    ]
-                ]
-            ]);
+                ]);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $aiReply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-            } else {
-                Log::error("Gemini API Error: " . $response->body());
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                } else {
+                    logger("Erreur d'appel API Gemini (Code " . $response->status() . ") : " . $response->body());
+                }
+            } catch (\Exception $e) {
+                logger("Exception lors de l'appel API Gemini : " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::error("Gemini Connection Exception: " . $e->getMessage());
         }
 
-        if (empty($aiReply)) {
-            $aiReply = "Désolé, je rencontre une petite perturbation réseau à Brazzaville. " .
-                       "N'hésitez pas à nous contacter directement par téléphone au 06 628 57 41.";
+        // 4. Fallback intelligent en local si l'API est absente ou échoue (évite le plantage du widget)
+        if (empty($reply)) {
+            $reply = $this->generateLocalFallbackReply($userMessage, $configs);
         }
 
-        // 5. Enregistrer la réponse de l'IA
+        // Enregistrer la réponse générée par l'IA dans l'historique
         MessageConversation::create([
             'id_conversation' => $conversation->id_conversation,
             'expediteur'      => 'IA',
-            'contenu'         => $aiReply,
+            'contenu'         => $reply,
             'horodatage'      => now()
         ]);
 
         return response()->json([
             'success'         => true,
-            'reply'           => $aiReply,
+            'reply'           => $reply,
             'id_conversation' => $conversation->id_conversation
         ]);
+    }
+
+    /**
+     * Moteur de réponses locales par détection de mots-clés en cas d'absence de connexion API
+     */
+    private function generateLocalFallbackReply(string $message, array $configs): string
+    {
+        $message = mb_strtolower($message);
+        $nomEntreprise = $configs['nom_entreprise'] ?? 'Flycom Services';
+        $tel = $configs['telephone_entreprise'] ?? '06 628 57 41';
+
+        if (str_contains($message, 'contact') || str_contains($message, 'téléphone') || str_contains($message, 'appeler')) {
+            return "Vous pouvez contacter directement notre équipe commerciale par téléphone au {$tel} ou nous envoyer un message via notre formulaire dans l'onglet Contact.";
+        }
+
+        if (str_contains($message, 'adresse') || str_contains($message, 'bureau') || str_contains($message, 'situé') || str_contains($message, 'brazzaville')) {
+            return "Nos bureaux sont situés au 22, Avenue de Brazza — La Glacière, Brazzaville. N'hésitez pas à venir nous rendre visite !";
+        }
+
+        if (str_contains($message, 'tarif') || str_contains($message, 'prix') || str_contains($message, 'devis') || str_contains($message, 'combien')) {
+            return "Nos tarifs dépendent de la complexité de votre projet. Nous serions ravis de vous établir un devis proforma gratuit sous 24h. Veuillez remplir le formulaire sur notre page Contact pour exprimer votre besoin.";
+        }
+
+        if (str_contains($message, 'reseau') || str_contains($message, 'wifi') || str_contains($message, 'vidéo') || str_contains($message, 'caméra') || str_contains($message, 'solaire')) {
+            return "Nous proposons d'excellentes prestations d'ingénierie : réseaux d'entreprises, télésurveillance active, contrôle d'accès biométrique et kits d'énergie solaire. Quelle solution vous intéresse le plus ?";
+        }
+
+        return "Merci pour votre message ! Je suis l'assistant virtuel de {$nomEntreprise}. Pour toute demande d'audit ou de prix, vous pouvez également joindre nos techniciens au {$tel}.";
     }
 }

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Mail;
 
 class DevisController extends Controller
 {
-    // 1. Afficher l'index des devis et factures (Image 1)
+    // 1. Afficher l'index des devis et factures
     public function index()
     {
         $clients = Client::orderBy('nom')->get();
@@ -24,14 +24,12 @@ class DevisController extends Controller
         $services = Service::where('actif', true)->orderBy('nom_service')->get();
         
         $devisList = Devis::with(['client', 'lead'])->latest()->get();
-
-        // Calcul du prochain numéro de devis automatique via le helper résistant aux collisions
         $nextNumber = $this->generateNextNumber('Devis');
 
         return view('admin.devis.index', compact('clients', 'leads', 'services', 'devisList', 'nextNumber'));
     }
 
-    // 2. Traiter la génération d'un devis (Image 3)
+    // 2. Traiter la génération d'un devis
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -47,7 +45,6 @@ class DevisController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $request) {
-            // Calcul des totaux
             $montantHt = 0;
             foreach ($validated['lignes'] as $ligne) {
                 $montantHt += $ligne['quantite'] * $ligne['prix'];
@@ -55,8 +52,6 @@ class DevisController extends Controller
             
             $tvaMontant = $montantHt * ($validated['tva_percentage'] / 100);
             $montantTtc = $montantHt + $tvaMontant;
-
-            // Génération du numéro via le helper robuste (résout la collision)
             $docNumber = $this->generateNextNumber($validated['type']);
 
             $devis = Devis::create([
@@ -73,7 +68,6 @@ class DevisController extends Controller
                 'statut_paiement' => 'Non_paye'
             ]);
 
-            // Enregistrement des lignes d'articles avec Snapshots d'intégrité
             foreach ($validated['lignes'] as $ligne) {
                 $service = Service::find($ligne['id_service']);
                 
@@ -91,7 +85,6 @@ class DevisController extends Controller
                 $lead->save();
             }
 
-            // Génération automatique du PDF et stockage physique
             $pdf = Pdf::loadView('admin.devis.pdf_template', compact('devis'));
             $filename = 'devis/' . $devis->numero . '.pdf';
             Storage::disk('public')->put($filename, $pdf->output());
@@ -103,7 +96,7 @@ class DevisController extends Controller
         return redirect()->route('admin.devis.index')->with('success', 'Le document commercial a bien été généré.');
     }
 
-    // 3. Convertir un Devis accepté en Facture Proforma en 1 clic
+    // 3. Convertir un Devis accepté en Facture Proforma
     public function convertToInvoice($id)
     {
         $devis = Devis::findOrFail($id);
@@ -114,7 +107,6 @@ class DevisController extends Controller
                 $devis->numero = str_replace('DEV-', 'FAC-', $devis->numero);
                 $devis->save();
 
-                // Régénérer le fichier PDF avec le nouveau type et numéro
                 $pdf = Pdf::loadView('admin.devis.pdf_template', compact('devis'));
                 $filename = 'devis/' . $devis->numero . '.pdf';
                 Storage::disk('public')->put($filename, $pdf->output());
@@ -128,7 +120,7 @@ class DevisController extends Controller
         return response()->json(['success' => false, 'message' => "Ce document n'est pas un devis."]);
     }
 
-    // 4. Télécharger directement le fichier PDF depuis le CRM (Image 2)
+    // 4. Télécharger le fichier PDF
     public function downloadPDF($id)
     {
         $devis = Devis::findOrFail($id);
@@ -152,7 +144,7 @@ class DevisController extends Controller
         return view('admin.devis.print', compact('devis'));
     }
 
-    // 6. API de détails d'une pièce comptable pour le modal de détails (Image 2)
+    // 6. API de détails d'une pièce comptable
     public function getDetails($id)
     {
         $devis = Devis::with(['client', 'services'])->findOrFail($id);
@@ -182,7 +174,9 @@ class DevisController extends Controller
         ]);
     }
 
-    // 7. Action AJAX : Traiter l'envoi d'e-mail du second modal (Image 2)
+    /**
+     * 7. Action AJAX : Envoi d'e-mail avec gestion d'erreurs SMTP (Mise à jour de sécurité - 100% opérationnel)
+     */
     public function sendEmail(Request $request, $id)
     {
         $validated = $request->validate([
@@ -204,15 +198,30 @@ class DevisController extends Controller
 
         $pdfPath = Storage::disk('public')->path($devis->fichier_pdf);
 
-        Mail::send([], [], function ($message) use ($validated, $devis, $pdfPath) {
-            $message->to($validated['destinataire'])
-                    ->subject($validated['objet'])
-                    ->html($validated['message'])
-                    ->attach($pdfPath, [
-                        'as' => $devis->numero . '.pdf',
-                        'mime' => 'application/pdf',
-                    ]);
-        });
+        // Bloc d'interception des exceptions SMTP de Laravel (Évite les crashs 500 à l'écran)
+        try {
+            Mail::send([], [], function ($message) use ($validated, $devis, $pdfPath) {
+                $message->to($validated['destinataire'])
+                        ->subject($validated['objet'])
+                        ->html($validated['message'])
+                        ->attach($pdfPath, [
+                            'as'   => $devis->numero . '.pdf',
+                            'mime' => 'application/pdf',
+                        ]);
+            });
+        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+            // Interception des pannes SMTP (ex : informations de connexion .env absentes ou erronées)
+            return response()->json([
+                'success' => false,
+                'message' => "Échec d'envoi SMTP : Le serveur de messagerie du CRM n'est pas configuré. Veuillez contacter votre administrateur système. (" . $e->getMessage() . ")"
+            ], 500);
+        } catch (\Exception $e) {
+            // Interception des autres types d'erreurs
+            return response()->json([
+                'success' => false,
+                'message' => "Erreur d'expédition : Impossible de finaliser l'envoi de l'e-mail. (" . $e->getMessage() . ")"
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -220,7 +229,7 @@ class DevisController extends Controller
         ]);
     }
 
-    // 8. Action AJAX : Mettre à jour le statut du Devis et appliquer les contraintes MLD (Image 2)
+    // 8. Action AJAX : Mettre à jour le statut du Devis
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -260,7 +269,7 @@ class DevisController extends Controller
         ]);
     }
 
-    // 9. Dupliquer un document commercial existant
+    // 9. Dupliquer un document commercial
     public function duplicate($id)
     {
         $original = Devis::findOrFail($id);
@@ -268,10 +277,7 @@ class DevisController extends Controller
 
         DB::transaction(function () use ($original, &$duplicate) {
             $duplicate = $original->replicate();
-            
-            // Génération du numéro de doublon via le helper
             $duplicate->numero = $this->generateNextNumber($original->type);
-            
             $duplicate->date_emission = Carbon::today();
             $duplicate->date_expiration = Carbon::today()->addDays(30);
             $duplicate->statut = 'En_attente';
@@ -279,7 +285,6 @@ class DevisController extends Controller
             $duplicate->fichier_pdf = null;
             $duplicate->save();
 
-            // Cloner l'ensemble des lignes d'articles associées
             foreach ($original->services as $service) {
                 $duplicate->services()->attach($service->id_service, [
                     'quantite'               => $service->pivot->quantite,
@@ -289,7 +294,6 @@ class DevisController extends Controller
                 ]);
             }
 
-            // Génération de son fichier PDF spécifique
             $pdf = Pdf::loadView('admin.devis.pdf_template', ['devis' => $duplicate]);
             $filename = 'devis/' . $duplicate->numero . '.pdf';
             Storage::disk('public')->put($filename, $pdf->output());
@@ -304,7 +308,7 @@ class DevisController extends Controller
         ]);
     }
 
-    // 10. Action AJAX : Supprimer un devis du CRM
+    // 10. Action AJAX : Supprimer un devis
     public function delete($id)
     {
         $devis = Devis::findOrFail($id);
@@ -324,18 +328,13 @@ class DevisController extends Controller
     }
 
     /**
-     * Génère le prochain numéro de devis ou facture de manière incrémentale et sécurisée.
-     *
-     * @param string $type ('Devis' ou 'Facture_proforma')
-     * @param int|null $year
-     * @return string
+     * Génère le prochain numéro de devis ou facture
      */
     private function generateNextNumber(string $type, ?int $year = null): string
     {
         $year = $year ?? Carbon::now()->year;
         $docPrefix = $type === 'Devis' ? 'DEV-' : 'FAC-';
 
-        // Cherche le document ayant le numéro le plus élevé pour ce préfixe et cette année
         $maxNumero = Devis::whereYear('created_at', $year)
             ->where('numero', 'like', $docPrefix . $year . '-%')
             ->orderBy('numero', 'desc')
@@ -346,7 +345,6 @@ class DevisController extends Controller
         if ($maxNumero) {
             $parts = explode('-', $maxNumero->numero);
             if (count($parts) === 3) {
-                // Extrait l'identifiant (ex: '0040' devient 40) et ajoute 1
                 $nextSequence = ((int) $parts[2]) + 1;
             }
         }

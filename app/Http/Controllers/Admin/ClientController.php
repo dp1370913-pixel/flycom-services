@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Client;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class ClientController extends Controller
 {
     /**
-     * 1. Afficher l'interface de gestion de vos clients (Image 11 & 12)
+     * 1. Afficher l'interface de gestion de vos clients
      */
     public function index(Request $request)
     {
@@ -19,7 +20,6 @@ class ClientController extends Controller
 
         $query = Client::query();
 
-        // Filtrage par nom ou prénom (Recherche en temps réel)
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
@@ -27,7 +27,6 @@ class ClientController extends Controller
             });
         }
 
-        // Filtrage par type de contact (Prospect, Client, Partenaire)
         if ($typeFilter && $typeFilter !== 'all') {
             $query->where('type_contact', $typeFilter);
         }
@@ -38,11 +37,10 @@ class ClientController extends Controller
     }
 
     /**
-     * 2. Traiter la création manuelle d'un nouveau client (Image 14)
+     * 2. Création manuelle d'un nouveau client
      */
     public function store(Request $request)
     {
-        // Validation stricte incluant l'unicité du téléphone pour éviter de faire planter SQL (MLD)
         $validated = $request->validate([
             'prenom'       => ['required', 'string', 'max:100'],
             'nom'          => ['required', 'string', 'max:100'],
@@ -60,32 +58,84 @@ class ClientController extends Controller
     }
 
     /**
-     * 3. Traiter l'importation automatique de fichiers CSV (Image 13 - Logique UPSERT)
+     * 3. API pour obtenir les détails d'un client au clic sur "Modifier" (Nouveau)
+     */
+    public function getDetails($id)
+    {
+        $client = Client::findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'client'  => $client
+        ]);
+    }
+
+    /**
+     * 4. Enregistrer les modifications de la fiche client (Nouveau)
+     */
+    public function update(Request $request, $id)
+    {
+        $client = Client::findOrFail($id);
+
+        $validated = $request->validate([
+            'prenom'       => ['required', 'string', 'max:100'],
+            'nom'          => ['required', 'string', 'max:100'],
+            'telephone'    => ['required', 'string', 'max:20', Rule::unique('clients', 'telephone')->ignore($client->id_client, 'id_client')],
+            'email'        => ['nullable', 'email', 'max:150'],
+            'entreprise'   => ['nullable', 'string', 'max:150'],
+            'adresse'      => ['nullable', 'string'],
+            'type_contact' => ['required', 'in:Prospect,Client,Partenaire'],
+            'notes'        => ['nullable', 'string'],
+        ]);
+
+        $client->update($validated);
+
+        return redirect()->route('admin.clients.index')->with('success', 'La fiche client a bien été mise à jour.');
+    }
+
+    /**
+     * 5. Supprimer définitivement un client (Nouveau)
+     */
+    public function delete($id)
+    {
+        $client = Client::findOrFail($id);
+
+        // Contrainte d'intégrité stricte (MLD) : Empêche la suppression si le client est rattaché à des devis/factures émis (sécurité financière)
+        if ($client->devis()->exists()) {
+            return redirect()->route('admin.clients.index')->with('error', 'Impossible de supprimer ce client car des devis ou factures y sont rattachés. Vous pouvez modifier ses informations ou le conserver tel quel.');
+        }
+
+        // Supprimer en cascade ses opportunités d'affaires (Leads) rattachées (ON DELETE CASCADE)
+        $client->leads()->each(function ($lead) {
+            $lead->services()->detach(); // Nettoie la table de liaison lead_services
+            $lead->delete();
+        });
+
+        $client->delete();
+
+        return redirect()->route('admin.clients.index')->with('success', 'Le client et ses opportunités rattachées ont été supprimés du CRM.');
+    }
+
+    /**
+     * 6. Traiter l'importation de fichiers CSV
      */
     public function importCSV(Request $request)
     {
         $request->validate([
-            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'] // Limite à 2 Mo
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048']
         ]);
 
         $file = $request->file('csv_file');
         $filePath = $file->getRealPath();
 
-        // Ouverture du fichier de données
         if (($handle = fopen($filePath, 'r')) !== false) {
-            
-            // Ignorer le BOM UTF-8 s'il est présent
             $bom = fread($handle, 3);
             if ($bom !== "\xEF\xBB\xBF") {
                 rewind($handle);
             }
 
-            // Lecture de la ligne d'en-tête
-            $header = fgetcsv($handle, 1000, ';'); // Séparateur point-virgule standard
+            fgetcsv($handle, 1000, ';'); // Saute les en-têtes
 
-            // Lecture ligne par ligne des clients
             while (($row = fgetcsv($handle, 1000, ';')) !== false) {
-                // S'assurer que la ligne n'est pas vide et contient assez d'éléments
                 if (count($row) < 3) continue;
 
                 $prenom = trim($row[0] ?? '');
@@ -96,16 +146,14 @@ class ClientController extends Controller
                 $adresse = trim($row[5] ?? null);
                 $type = trim($row[6] ?? 'Prospect');
 
-                // Protection anti-doublon d'index unique (UPSERT) :
-                // Si le téléphone existe, on met à jour la fiche, sinon on la crée (MLD)
                 Client::updateOrCreate(
-                    ['telephone' => $telephone], // Condition d'unicité
+                    ['telephone' => $telephone],
                     [
-                        'prenom' => $prenom,
-                        'nom' => $nom,
-                        'email' => $email !== '' ? $email : null,
-                        'entreprise' => $entreprise !== '' ? $entreprise : null,
-                        'adresse' => $adresse !== '' ? $adresse : null,
+                        'prenom'       => $prenom,
+                        'nom'          => $nom,
+                        'email'        => $email !== '' ? $email : null,
+                        'entreprise'   => $entreprise !== '' ? $entreprise : null,
+                        'adresse'      => $adresse !== '' ? $adresse : null,
                         'type_contact' => in_array($type, ['Prospect', 'Client', 'Partenaire']) ? $type : 'Prospect',
                     ]
                 );
@@ -117,16 +165,13 @@ class ClientController extends Controller
     }
 
     /**
-     * 4. EXPORTATION DU RÉFÉRENTIEL CLIENTS AU FORMAT CSV
+     * 7. Exportation au format CSV
      */
     public function export()
     {
-        // Récupération ordonnée de tous les clients
         $clients = Client::latest()->get();
-
         $fileName = 'clients_export_' . Carbon::now()->format('Y_m_d') . '.csv';
 
-        // Configuration des en-têtes HTTP pour forcer le téléchargement du fichier CSV
         $headers = [
             "Content-type"        => "text/csv; charset=UTF-8",
             "Content-Disposition" => "attachment; filename=$fileName",
@@ -137,24 +182,10 @@ class ClientController extends Controller
 
         $callback = function() use($clients) {
             $file = fopen('php://output', 'w');
-            
-            // Injection du BOM UTF-8 indispensable pour qu'Excel ouvre directement le fichier avec les accents (é, à, etc.)
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // En-têtes des colonnes de la fiche client
-            fputcsv($file, [
-                'Prénom', 
-                'Nom', 
-                'Téléphone', 
-                'Email', 
-                'Entreprise', 
-                'Adresse', 
-                'Type', 
-                'Notes', 
-                'Depuis'
-            ], ';'); // Séparateur point-virgule pour une compatibilité Excel francophone immédiate
+            fputcsv($file, ['Prénom', 'Nom', 'Téléphone', 'Email', 'Entreprise', 'Adresse', 'Type', 'Notes', 'Depuis'], ';');
 
-            // Remplissage des lignes de données
             foreach ($clients as $client) {
                 fputcsv($file, [
                     $client->prenom,

@@ -226,9 +226,9 @@ body.loading-lock {
    HEADER ET NAVBAR (Breakpoint de collapse et securite de taille)
    ========================================================================== */
 .navbar-sticky {
-    position: sticky;
+    /* position: sticky;
     top: 0;
-    z-index: 1030;
+    z-index: 1030; */
     background-color: rgba(5, 14, 45, 0.92);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);

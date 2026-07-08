@@ -8,12 +8,13 @@ use App\Models\Lead;
 use App\Models\Client;
 use App\Models\Service;
 use App\Models\Interaction;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class LeadController extends Controller
 {
     /**
-     * 1. Afficher l'interface du Pipeline Commercial (Kanban & Liste)
+     * 1. Afficher l'interface du Pipeline Commercial
      */
     public function index(Request $request)
     {
@@ -38,7 +39,6 @@ class LeadController extends Controller
 
         $allLeads = $query->latest()->get();
 
-        // Répartir les leads par colonnes de statut
         $kanbanLeads = [
             'Nouveau'      => $allLeads->where('statut', 'Nouveau'),
             'Contacte'     => $allLeads->where('statut', 'Contacte'),
@@ -52,7 +52,7 @@ class LeadController extends Controller
     }
 
     /**
-     * 2. Création manuelle d'un lead (M3)
+     * 2. Création manuelle d'un lead
      */
     public function store(Request $request)
     {
@@ -82,7 +82,43 @@ class LeadController extends Controller
     }
 
     /**
-     * 3. Mettre à jour le statut au Glisser-Déposer (AJAX Kanban)
+     * 3. Mettre à jour toutes les informations d'un Lead existant (Nouveau)
+     */
+    public function update(Request $request, $id)
+    {
+        $lead = Lead::findOrFail($id);
+
+        $validated = $request->validate([
+            'source'            => ['required', 'string'],
+            'priorite'          => ['required', 'string'],
+            'statut'            => ['required', 'string'],
+            'prochaine_relance' => ['nullable', 'date'],
+            'message_origine'   => ['nullable', 'string', 'max:500'],
+            'services_concernes' => ['required', 'array', 'min:1'],
+            'services_concernes.*' => ['exists:services,id_service']
+        ]);
+
+        DB::transaction(function () use ($lead, $validated) {
+            $lead->update([
+                'source'            => $validated['source'],
+                'priorite'          => $validated['priorite'],
+                'statut'            => $validated['statut'],
+                'prochaine_relance' => $validated['prochaine_relance'] ? Carbon::parse($validated['prochaine_relance']) : null,
+                'message_origine'   => $validated['message_origine'],
+            ]);
+
+            // Synchroniser la table associative lead_services
+            $lead->services()->sync($validated['services_concernes']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'L\'opportunité commerciale a été modifiée avec succès.'
+        ]);
+    }
+
+    /**
+     * 4. Mettre à jour le statut au Glisser-Déposer (AJAX)
      */
     public function updateStatus(Request $request, $id)
     {
@@ -101,7 +137,35 @@ class LeadController extends Controller
     }
 
     /**
-     * 4. Enregistrer une nouvelle interaction directement sur un lead (Nouveau - 100% fonctionnel)
+     * 5. Supprimer définitivement un Lead (Nouveau)
+     */
+    public function delete($id)
+    {
+        $lead = Lead::findOrFail($id);
+
+        // Contrainte d'intégrité (MLD) : Empêche de supprimer un lead si un devis ou facture est rattaché
+        if ($lead->devis()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de supprimer cette opportunité car un devis ou une facture y est rattaché.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($lead) {
+            // Nettoyage de ses liaisons
+            $lead->services()->detach();
+            $lead->interactions()->delete();
+            $lead->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'L\'opportunité a été retirée définitivement du CRM.'
+        ]);
+    }
+
+    /**
+     * 6. Enregistrer une nouvelle interaction
      */
     public function storeInteraction(Request $request, $id)
     {
@@ -112,7 +176,6 @@ class LeadController extends Controller
 
         $lead = Lead::findOrFail($id);
 
-        // Créer l'interaction d'historique de garde (MLD)
         $interaction = Interaction::create([
             'id_client'   => $lead->id_client,
             'id_user'     => auth()->id(),
@@ -135,7 +198,7 @@ class LeadController extends Controller
     }
 
     /**
-     * 5. API de détails d'un lead (AJAX Modal)
+     * 7. API de détails d'un lead
      */
     public function getDetails($id)
     {
@@ -143,17 +206,22 @@ class LeadController extends Controller
 
         return response()->json([
             'id_lead'          => $lead->id_lead,
+            'id_client'        => $lead->id_client,
             'client_prenom'    => $lead->client->prenom,
             'client_nom'       => $lead->client->nom,
             'client_telephone' => $lead->client->telephone,
             'client_email'     => $lead->client->email ?? 'Aucun email renseigné',
-            'message_origine'  => $lead->message_origine ?? 'Aucune spécification de message renseignée.',
-            'statut'           => str_replace('_', ' ', $lead->statut),
+            'message_origine'  => $lead->message_origine ?? '',
+            'statut'           => $lead->statut,
             'priorite'         => $lead->priorite,
-            'source'           => str_replace('_', ' ', $lead->source),
+            'source'           => $lead->source,
+            'prochaine_relance'=> $lead->prochaine_relance ? $lead->prochaine_relance->format('Y-m-d\TH:i') : '',
             'cree_le'          => $lead->created_at->format('d/m/Y'),
             'services'         => $lead->services->map(function ($service) {
-                return $service->nom_service;
+                return [
+                    'id_service'  => $service->id_service,
+                    'nom_service' => $service->nom_service
+                ];
             }),
             'interactions'     => $lead->interactions->sortByDesc('date')->values()->map(function ($interaction) {
                 return [
@@ -167,7 +235,7 @@ class LeadController extends Controller
     }
 
     /**
-     * 6. Exportation au format CSV
+     * 8. Exportation au format CSV
      */
     public function export()
     {

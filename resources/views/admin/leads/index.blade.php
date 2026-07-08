@@ -89,7 +89,7 @@
 
             <div class="kanban-col-body d-flex flex-column gap-2" data-status="{{ $statut }}" style="min-height: 120px;">
                 @foreach($kanbanLeads[$statut] as $lead)
-                <div class="kanban-card bg-white rounded-3 p-3 btn-view-lead" @if(Auth::user()->role !== 'Lecture') draggable="true" @endif data-id="{{ $lead->id_lead }}" data-bs-toggle="modal" data-bs-target="#leadDetailsModal" style="border: 1px solid #F1F5F9; cursor: pointer;">
+                <div class="kanban-card bg-white rounded-3 p-3 btn-view-lead" @if(Auth::user()->role !== 'Lecture') draggable="true" @endif data-id="{{ $lead->id_lead }}" data-bs-toggle="modal" data-bs-target="#leadDetailsModal" style="border: 1px solid #F1F5F9; cursor: pointer;" id="card-lead-{{ $lead->id_lead }}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <span class="fw-bold text-navy" style="font-size: 0.87rem; line-height: 1.3;">{{ $lead->client->prenom }} {{ $lead->client->nom }}</span>
                         @if(Auth::user()->role !== 'Lecture')
@@ -221,7 +221,7 @@
                 <div class="modal-body px-4 py-4 row g-3" style="font-size: 0.82rem;">
                     <div class="col-md-6">
                         <label for="id_client" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Client *</label>
-                        <select name="id_client" id="id_client" class="form-select bg-light border-light py-2" required>
+                        <select name="id_client" id="id_client" class="form-select bg-light border-light py-2" required style="box-shadow: none !important;">
                             <option value="" disabled selected>Choisir un client</option>
                             @foreach($clients as $client)
                             <option value="{{ $client->id_client }}">{{ $client->prenom }} {{ $client->nom }} — {{ $client->telephone }}</option>
@@ -231,7 +231,7 @@
 
                     <div class="col-md-6">
                         <label for="source" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Source *</label>
-                        <select name="source" id="source" class="form-select bg-light border-light py-2" required>
+                        <select name="source" id="source" class="form-select bg-light border-light py-2" required style="box-shadow: none !important;">
                             <option value="Site_web">Site web</option>
                             <option value="WhatsApp" selected>WhatsApp</option>
                             <option value="Appel_direct">Appel direct</option>
@@ -242,7 +242,7 @@
 
                     <div class="col-md-6">
                         <label for="priorite" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Priorité *</label>
-                        <select name="priorite" id="priorite" class="form-select bg-light border-light py-2" required>
+                        <select name="priorite" id="priorite" class="form-select bg-light border-light py-2" required style="box-shadow: none !important;">
                             <option value="Haute">Haute</option>
                             <option value="Normale" selected>Normale</option>
                             <option value="Basse">Basse</option>
@@ -251,7 +251,7 @@
 
                     <div class="col-md-6">
                         <label for="statut_initial" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Statut initial *</label>
-                        <select name="statut_initial" id="statut_initial" class="form-select bg-light border-light py-2" required>
+                        <select name="statut_initial" id="statut_initial" class="form-select bg-light border-light py-2" required style="box-shadow: none !important;">
                             <option value="Nouveau" selected>Nouveau</option>
                             <option value="Contacte">Contacté</option>
                             <option value="Devis_envoye">Devis envoyé</option>
@@ -261,7 +261,7 @@
 
                     <div class="col-md-6">
                         <label for="prochaine_relance" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Prochaine relance</label>
-                        <input type="datetime-local" name="prochaine_relance" id="prochaine_relance" class="form-control bg-light border-light py-2">
+                        <input type="datetime-local" name="prochaine_relance" id="prochaine_relance" class="form-control bg-light border-light py-2" style="box-shadow: none !important;">
                     </div>
 
                     <div class="col-12">
@@ -280,12 +280,12 @@
 
                     <div class="col-12">
                         <label for="message" class="form-label fw-bold text-navy text-uppercase" style="font-size: 0.72rem;">Message / Demande</label>
-                        <textarea name="message" id="message" class="form-control bg-light border-light py-2" rows="3" maxlength="500" placeholder="Décrivez le besoin..."></textarea>
+                        <textarea name="message" id="message" class="form-control bg-light border-light py-2" rows="3" maxlength="500" placeholder="Décrivez le besoin..." style="box-shadow: none !important;"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-light px-4 py-3">
-                    <button type="button" class="btn btn-outline-secondary rounded-3 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background: #0D1B4B;">Créer le lead</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background: #0D1B4B; border:none;">Créer le lead</button>
                 </div>
             </form>
         </div>
@@ -295,101 +295,188 @@
 
 <!-- MODAL DE DÉTAILS D'UN LEAD -->
 <div class="modal fade" id="leadDetailsModal" tabindex="-1" aria-labelledby="leadDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 rounded-4 shadow-lg bg-white text-navy">
+            
             <div class="modal-header border-0 px-4 pt-4 pb-0">
                 <div>
                     <h5 class="modal-title fw-extrabold text-navy fs-5" id="detailClientName">Chargement...</h5>
                     <small class="text-muted fs-8" id="detailClientMeta"></small>
                 </div>
-                <button type="button" class="btn-close shadow-none align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close shadow-none align-self-start" data-bs-dismiss="modal" aria-label="Close" id="btnCloseDetailsModal"></button>
             </div>
             
-            <div class="modal-body px-4 py-3 fs-8">
-                <!-- Message d'origine -->
-                <div class="mb-4">
-                    <span class="field-label" style="color:#64748B;">Message d'origine</span>
-                    <div class="p-3 rounded-4 mt-2" style="background-color: #F8FAFC; border: 1px solid #E2E8F0 !important;">
-                        <p class="mb-0 text-muted leading-relaxed" id="detailMessage">Chargement des données du prospect en cours...</p>
+            <!-- 1. CONTENEUR DU MODE CONSULTATION -->
+            <div id="leadViewModeContainer">
+                <div class="modal-body px-4 py-3 fs-8">
+                    
+                    <div class="mb-4">
+                        <span class="field-label" style="color:#64748B;">Message d'origine</span>
+                        <div class="p-3 rounded-4 mt-2" style="background-color: #F8FAFC; border: 1px solid #E2E8F0 !important;">
+                            <p class="mb-0 text-muted leading-relaxed" id="detailMessage">Chargement des données du prospect en cours...</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <span class="field-label" style="color:#64748B;">Services concernés</span>
+                        <div class="d-flex flex-wrap gap-1 mt-2" id="detailServicesContainer"></div>
+                    </div>
+
+                    <div class="row g-2 mb-4 text-start">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                                <span class="field-label" style="color:#94A3B8;">Statut</span>
+                                <span class="fw-bold d-block text-navy mt-1 text-capitalize" id="detailStatut">Nouveau</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                                <span class="field-label" style="color:#94A3B8;">Priorité</span>
+                                <span class="fw-bold d-block mt-1" id="detailPriorite">Normale</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                                <span class="field-label" style="color:#94A3B8;">Source</span>
+                                <span class="fw-bold d-block text-navy mt-1 text-capitalize" id="detailSource">Site web</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                                <span class="field-label" style="color:#94A3B8;">Créé le</span>
+                                <span class="fw-bold d-block text-navy mt-1" id="detailCreeLe">--/--/----</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FORMULAIRE INLINE AJOUT D'INTERACTION (Rétractable) -->
+                    @if(Auth::user()->role !== 'Lecture')
+                    <div class="mb-4 d-none" id="interactionFormContainer" style="border-top: 1px solid #E2E8F0; padding-top: 15px;">
+                        <span class="field-label mb-2" style="color: #00B4D8;"><i class="bi bi-chat-left-text-fill"></i> Nouvelle interaction</span>
+                        <form id="addInteractionForm" class="row g-2">
+                            <div class="col-md-5">
+                                <select name="type_canal" id="interaction_canal" class="form-select bg-light border-light py-1.5 fs-8" required style="box-shadow:none !important;">
+                                    <option value="" disabled selected>Canal...</option>
+                                    <option value="Appel">Appel téléphonique</option>
+                                    <option value="WhatsApp">WhatsApp</option>
+                                    <option value="Email">Email</option>
+                                    <option value="Rendez-vous">Rendez-vous</option>
+                                    <option value="Visite_terrain">Visite terrain</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7">
+                                <textarea name="note" id="interaction_note" class="form-control bg-light border-light py-1.5 fs-8" rows="1" placeholder="Note d'interaction..." required style="box-shadow:none !important;"></textarea>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                                <button type="button" class="btn btn-light btn-sm rounded-2 fs-9" id="btnCancelInteraction">Annuler</button>
+                                <button type="submit" class="btn text-white btn-sm rounded-2 fs-9" id="btnSubmitInteraction" style="background:#0D1B4B; border:none;">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                    @endif
+
+                    <!-- Historique des interactions -->
+                    <div class="mb-2">
+                        <span class="field-label" id="detail-interactions-count-header" style="color:#64748B;">Historique (0)</span>
+                        <div class="d-flex flex-column gap-2 mt-2 overflow-y-auto" id="detailInteractionsContainer" style="max-height: 220px;"></div>
                     </div>
                 </div>
-
-                <!-- Services concernés -->
-                <div class="mb-4">
-                    <span class="field-label" style="color:#64748B;">Services concernés</span>
-                    <div class="d-flex flex-wrap gap-1 mt-2" id="detailServicesContainer"></div>
+                
+                <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
+                    @if(Auth::user()->role !== 'Lecture')
+                    <a href="#" id="btnCreateDevisLink" class="btn text-white fw-bold px-4 py-2.5 flex-grow-1" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">Créer un devis</a>
+                    <button type="button" class="btn btn-outline-secondary fw-semibold px-4 py-2.5" id="btnToggleInteractionForm" style="border-radius: 8px; font-size:0.8rem;">Ajouter interaction</button>
+                    <button type="button" class="btn btn-light fw-bold px-4 py-2.5" id="btnSwitchToEditMode" style="border-radius: 8px; font-size:0.8rem; color:#4B5563;"><i class="bi bi-pencil-square"></i> Modifier</button>
+                    @else
+                    <button type="button" class="btn btn-light w-100 fw-bold py-2.5" data-bs-dismiss="modal" style="border-radius: 8px; font-size:0.8rem;">Fermer</button>
+                    @endif
                 </div>
+            </div>
 
-                <!-- Grille de métadonnées -->
-                <div class="row g-2 mb-4 text-start">
-                    <div class="col-6">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Statut</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailStatut">Nouveau</span>
+            <!-- 2. CONTENEUR DU MODE ÉDITION COMPLETE -->
+            @if(Auth::user()->role !== 'Lecture')
+            <div id="leadEditModeContainer" class="d-none">
+                <form id="editLeadForm">
+                    <div class="modal-body px-4 py-3 row g-3 text-start fs-8">
+                        <div class="col-12 bg-light p-3 rounded-4 mb-2">
+                            <strong class="d-block text-navy fs-8 mb-1"><i class="bi bi-info-circle-fill text-cyan"></i> Mode Édition de l'opportunité</strong>
+                            <span class="text-muted fs-9">Ajustez les besoins du projet, les dates de relance et l'état d'avancement.</span>
                         </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Priorité</span>
-                            <span class="fw-bold d-block mt-1" id="detailPriorite">Normale</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Source</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailSource">Site web</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 rounded-3" style="background:#F8FAFC;">
-                            <span class="field-label" style="color:#94A3B8;">Créé le</span>
-                            <span class="fw-bold d-block text-navy mt-1" id="detailCreeLe">--/--/----</span>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- FORMULAIRE INLINE AJOUT D'INTERACTION (Rétractable d'ergonomie - Nouveau) -->
-                @if(Auth::user()->role !== 'Lecture')
-                <div class="mb-4 d-none" id="interactionFormContainer" style="border-top: 1px solid #E2E8F0; padding-top: 15px;">
-                    <span class="field-label mb-2" style="color: #00B4D8;"><i class="bi bi-chat-left-text-fill"></i> Nouvelle interaction</span>
-                    <form id="addInteractionForm" class="row g-2">
-                        <div class="col-md-5">
-                            <select name="type_canal" id="interaction_canal" class="form-select bg-light border-light py-1.5 fs-8" required>
-                                <option value="" disabled selected>Canal...</option>
-                                <option value="Appel">Appel téléphonique</option>
+                        <div class="col-md-4">
+                            <label for="edit_source" class="form-label fw-bold text-navy text-uppercase" style="font-size:0.7rem;">Source d'acquisition *</label>
+                            <select name="source" id="edit_source" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow:none !important;">
+                                <option value="Site_web">Site web</option>
                                 <option value="WhatsApp">WhatsApp</option>
+                                <option value="Appel_direct">Appel direct</option>
+                                <option value="Recommandation">Recommandation</option>
                                 <option value="Email">Email</option>
-                                <option value="Rendez-vous">Rendez-vous</option>
-                                <option value="Visite_terrain">Visite terrain</option>
                             </select>
                         </div>
-                        <div class="col-md-7">
-                            <textarea name="note" id="interaction_note" class="form-control bg-light border-light py-1.5 fs-8" rows="1" placeholder="Note d'interaction..." required></textarea>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                            <button type="button" class="btn btn-light btn-sm rounded-2 fs-9" id="btnCancelInteraction">Annuler</button>
-                            <button type="submit" class="btn text-white btn-sm rounded-2 fs-9" id="btnSubmitInteraction" style="background:#0D1B4B; border:none;">Enregistrer</button>
-                        </div>
-                    </form>
-                </div>
-                @endif
 
-                <!-- Liste d'historique -->
-                <div class="mb-2">
-                    <span class="field-label" id="detail-interactions-count-header" style="color:#64748B;">Historique (0)</span>
-                    <div class="d-flex flex-column gap-2 mt-2 overflow-y-auto" id="detailInteractionsContainer" style="max-height: 220px;"></div>
-                </div>
+                        <div class="col-md-4">
+                            <label for="edit_priorite" class="form-label fw-bold text-navy text-uppercase" style="font-size:0.7rem;">Priorité *</label>
+                            <select name="priorite" id="edit_priorite" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow:none !important;">
+                                <option value="Haute">Haute</option>
+                                <option value="Normale">Normale</option>
+                                <option value="Basse">Basse</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="edit_statut" class="form-label fw-bold text-navy text-uppercase" style="font-size:0.7rem;">Étape du pipeline *</label>
+                            <select name="statut" id="edit_statut" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow:none !important;">
+                                <option value="Nouveau">Nouveau</option>
+                                <option value="Contacte">Contacté</option>
+                                <option value="Devis_envoye">Devis envoyé</option>
+                                <option value="Negociation">Négociation</option>
+                                <option value="Gagne">Gagné</option>
+                                <option value="Perdu">Perdu</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="edit_prochaine_relance" class="form-label fw-bold text-navy text-uppercase" style="font-size:0.7rem;">Prochaine relance planifiée</label>
+                            <input type="datetime-local" name="prochaine_relance" id="edit_prochaine_relance" class="form-control bg-light border-light py-2 fs-8" style="box-shadow:none !important;">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-navy text-uppercase mb-2" style="font-size: 0.7rem;">Services d'intérêts *</label>
+                            <div class="row g-2">
+                                @foreach($services as $service)
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check p-2 rounded-3 border border-light bg-light d-flex align-items-center gap-2">
+                                        <input class="form-check-input ms-1 edit-lead-service-checkbox" type="checkbox" name="services_concernes[]" value="{{ $service->id_service }}" id="editSvc{{ $service->id_service }}" style="width:15px; height:15px; accent-color: #0D1B4B;">
+                                        <label class="form-check-label text-truncate text-navy" style="font-size: 0.78rem;" for="editSvc{{ $service->id_service }}">{{ $service->nom_service }}</label>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="edit_message_origine" class="form-label fw-bold text-navy text-uppercase" style="font-size:0.7rem;">Description du besoin d'origine</label>
+                            <textarea name="message_origine" id="edit_message_origine" class="form-control bg-light border-light py-2 fs-8" rows="3" placeholder="Décrivez le besoin..." style="box-shadow:none !important;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer border-top border-light px-4 py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            @if(Auth::user()->role === 'Admin')
+                            <button type="button" class="btn btn-outline-danger rounded-3 fs-8 fw-semibold px-3 py-2" id="btnDeleteLead" style="border:none;">
+                                <i class="bi bi-trash3-fill me-1"></i> Supprimer ce lead
+                            </button>
+                            @endif
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" id="btnCancelEditMode">Annuler</button>
+                            <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" id="btnSubmitEditLead" style="background:#0D1B4B; border:none;">Enregistrer les modifications</button>
+                        </div>
+                    </div>
+                </form>
             </div>
-            
-            <!-- Actions de pied de page adaptatives -->
-            <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
-                @if(Auth::user()->role !== 'Lecture')
-                <a href="#" id="btnCreateDevisLink" class="btn text-white fw-bold px-4 py-2.5 flex-grow-1" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">Créer un devis</a>
-                <button type="button" class="btn btn-outline-secondary fw-semibold px-4 py-2.5" id="btnToggleInteractionForm" style="border-radius: 8px; font-size:0.8rem;">Ajouter interaction</button>
-                @else
-                <button type="button" class="btn btn-light w-100 fw-bold py-2.5" data-bs-dismiss="modal" style="border-radius: 8px; font-size:0.8rem;">Fermer</button>
-                @endif
-            </div>
+            @endif
+
         </div>
     </div>
 </div>
@@ -438,13 +525,11 @@
     box-shadow: 0 1px 5px rgba(0,0,0,0.12);
 }
 
-/* Animations de transition */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Toast de notification */
 .toast-custom-success {
     background-color: #ECFDF5 !important;
     border: 1px solid #10B981 !important;
@@ -550,41 +635,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!triggerElement) return;
 
             const id = triggerElement.getAttribute('data-id');
-            activeLeadId = id; // Sauvegarde de l'ID courant pour l'interaction
+            activeLeadId = id;
 
-            // Réinitialiser le formulaire d'interaction au cas où
+            toggleLeadModalMode('view');
+
             const formContainer = document.getElementById('interactionFormContainer');
             if (formContainer) formContainer.classList.add('d-none');
             
             const addInteractionForm = document.getElementById('addInteractionForm');
             if (addInteractionForm) addInteractionForm.reset();
 
-            // Configurer le lien de redirection de création de devis
             const btnCreateDevis = document.getElementById('btnCreateDevisLink');
             if (btnCreateDevis) {
                 btnCreateDevis.setAttribute('href', `/admin/devis?lead_id=${id}`);
             }
 
-            // Réinitialiser les affichages
             document.getElementById('detailClientName').innerText = "Chargement...";
             document.getElementById('detailClientMeta').innerText = "";
             document.getElementById('detailMessage').innerText = "Chargement des données du prospect en cours...";
             document.getElementById('detailServicesContainer').innerHTML = "";
             document.getElementById('detailInteractionsContainer').innerHTML = "";
 
-            // Appel asynchrone (M3)
             fetch(`/admin/leads/${id}/details`)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('detailClientName').innerText = data.client_prenom + ' ' + data.client_nom;
                     document.getElementById('detailClientMeta').innerText = data.client_telephone + ' · ' + data.client_email;
-                    document.getElementById('detailMessage').innerText = data.message_origine;
-                    document.getElementById('detailStatut').innerText = data.statut;
+                    document.getElementById('detailMessage').innerText = data.message_origine || "Aucune description du besoin n'a été rédigée.";
+                    document.getElementById('detailStatut').innerText = data.statut.replace('_', ' ');
                     document.getElementById('detailPriorite').innerText = data.priorite;
-                    document.getElementById('detailSource').innerText = data.source;
+                    document.getElementById('detailSource').innerText = data.source.replace('_', ' ');
                     document.getElementById('detailCreeLe').innerText = data.cree_le;
 
-                    // Ajustement de la classe priorité
                     const prioText = document.getElementById('detailPriorite');
                     if (data.priorite === 'Haute') {
                         prioText.className = 'fw-bold d-block text-danger mt-1';
@@ -594,16 +676,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         prioText.className = 'fw-bold d-block text-muted mt-1';
                     }
 
-                    // Injection des badges de services
                     const servicesContainer = document.getElementById('detailServicesContainer');
                     data.services.forEach(svc => {
                         const span = document.createElement('span');
-                        span.className = 'badge bg-cyan-soft text-cyan px-2 py-1.5 rounded-3 fs-9 fw-bold';
-                        span.innerText = svc;
+                        span.className = 'badge bg-cyan-soft text-cyan px-2 py-1.5 rounded-3 fs-9 fw-bold me-1 mb-1';
+                        span.innerText = svc.nom_service;
                         servicesContainer.appendChild(span);
                     });
 
-                    // Mise à jour de l'historique d'interactions
                     const countHeader = document.getElementById('detail-interactions-count-header');
                     if (countHeader) {
                         countHeader.innerText = `Historique (${data.interactions.length})`;
@@ -628,6 +708,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         interactionsContainer.innerHTML = '<span class="text-muted fs-8">Aucune interaction consignée pour le moment.</span>';
                     }
+
+                    if (document.getElementById('leadEditModeContainer')) {
+                        document.getElementById('edit_source').value = data.source;
+                        document.getElementById('edit_priorite').value = data.priorite;
+                        document.getElementById('edit_statut').value = data.statut;
+                        document.getElementById('edit_prochaine_relance').value = data.prochaine_relance || '';
+                        document.getElementById('edit_message_origine').value = data.message_origine;
+
+                        document.querySelectorAll('.edit-lead-service-checkbox').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        data.services.forEach(svc => {
+                            const checkbox = document.getElementById(`editSvc${svc.id_service}`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        });
+                    }
                 })
                 .catch(err => {
                     console.error('AJAX Error:', err);
@@ -635,6 +733,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+
+    /* ── Commutation dynamique View VS Edit ── */
+    const viewContainer = document.getElementById('leadViewModeContainer');
+    const editContainer = document.getElementById('leadEditModeContainer');
+    const btnToEdit = document.getElementById('btnSwitchToEditMode');
+    const btnToView = document.getElementById('btnCancelEditMode');
+
+    function toggleLeadModalMode(mode) {
+        if (!viewContainer || !editContainer) return;
+        if (mode === 'edit') {
+            viewContainer.classList.add('d-none');
+            editContainer.classList.remove('d-none');
+        } else {
+            viewContainer.classList.remove('d-none');
+            editContainer.classList.add('d-none');
+        }
+    }
+
+    if (btnToEdit) btnToEdit.addEventListener('click', () => toggleLeadModalMode('edit'));
+    if (btnToView) btnToView.addEventListener('click', () => toggleLeadModalMode('view'));
 
     /* ── Logique interactive du Formulaire d'Interaction Inline ── */
     const btnToggleForm = document.getElementById('btnToggleInteractionForm');
@@ -685,11 +803,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnSubmit.innerHTML = 'Enregistrer';
 
                 if (data.success) {
-                    // Masquer et vider le formulaire
                     formContainer.classList.add('d-none');
                     addInteractionForm.reset();
 
-                    // Mettre à jour la vue de l'historique sans rechargement
                     const listContainer = document.getElementById('detailInteractionsContainer');
                     if (listContainer) {
                         if (listContainer.innerHTML.includes('Aucune')) {
@@ -709,7 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                         listContainer.insertAdjacentHTML('afterbegin', itemHtml);
                         
-                        // Incrémenter le compteur d'historique
                         const countHeader = document.getElementById('detail-interactions-count-header');
                         if (countHeader) {
                             const currentCount = parseInt(countHeader.innerText.replace(/[^0-9]/g, '')) || 0;
@@ -717,7 +832,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // Déclencher le Toast de succès
                     window.showToast(data.message, 'Interaction ajoutée');
                 }
             })
@@ -725,8 +839,118 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = 'Enregistrer';
                 console.error(err);
-                alert("Erreur réseau lors de l'enregistrement.");
             });
+        });
+    }
+
+    /* ── 3. SOUMISSION ASYNCHRONE DE LA MODIFICATION DE LEAD ── */
+    const editLeadForm = document.getElementById('editLeadForm');
+    const btnSubmitEdit = document.getElementById('btnSubmitEditLead');
+
+    if (editLeadForm) {
+        editLeadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const leadId = activeLeadId;
+            if (!leadId) return;
+
+            btnSubmitEdit.disabled = true;
+            btnSubmitEdit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enregistrement...`;
+
+            const selectedServices = [];
+            document.querySelectorAll('.edit-lead-service-checkbox:checked').forEach(cb => {
+                selectedServices.push(cb.value);
+            });
+
+            const payload = {
+                source: document.getElementById('edit_source').value,
+                priorite: document.getElementById('edit_priorite').value,
+                statut: document.getElementById('edit_statut').value,
+                prochaine_relance: document.getElementById('edit_prochaine_relance').value,
+                message_origine: document.getElementById('edit_message_origine').value,
+                services_concernes: selectedServices,
+            };
+
+            fetch(`/admin/leads/${leadId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                btnSubmitEdit.disabled = false;
+                btnSubmitEdit.innerHTML = 'Enregistrer les modifications';
+
+                if (data.success) {
+                    const modalCloseBtn = document.getElementById('btnCloseDetailsModal');
+                    if (modalCloseBtn) modalCloseBtn.click();
+
+                    window.showToast(data.message, 'Lead mis à jour');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1200);
+                }
+            })
+            .catch(err => {
+                btnSubmitEdit.disabled = false;
+                btnSubmitEdit.innerHTML = 'Enregistrer les modifications';
+                console.error(err);
+                alert("Erreur lors de la mise à jour.");
+            });
+        });
+    }
+
+    /* ── 4. LOGIQUE SÉCURISÉE DE SUPPRESSION DE LEAD POUR L'ADMIN ── */
+    const btnDeleteLead = document.getElementById('btnDeleteLead');
+    if (btnDeleteLead) {
+        btnDeleteLead.addEventListener('click', (e) => {
+            e.preventDefault();
+            const leadId = activeLeadId;
+            if (!leadId) return;
+
+            if (confirm("Êtes-vous sûr de vouloir retirer définitivement cette opportunité commerciale du CRM ? Cette action est définitive et effacera également son journal d'interactions.")) {
+                btnDeleteLead.disabled = true;
+                btnDeleteLead.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Suppression...`;
+
+                fetch(`/admin/leads/${leadId}/delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btnDeleteLead.disabled = false;
+                    btnDeleteLead.innerHTML = `<i class="bi bi-trash3-fill me-1"></i> Supprimer ce lead`;
+
+                    if (data.success) {
+                        const modalCloseBtn = document.getElementById('btnCloseDetailsModal');
+                        if (modalCloseBtn) modalCloseBtn.click();
+
+                        const targetCard = document.getElementById(`card-lead-${leadId}`);
+                        if (targetCard) {
+                            targetCard.style.opacity = '0';
+                            targetCard.style.transition = 'all 0.5s ease-out';
+                            setTimeout(() => {
+                                targetCard.remove();
+                                window.showToast(data.message, 'Opportunité supprimée');
+                            }, 500);
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(err => {
+                    btnDeleteLead.disabled = false;
+                    btnDeleteLead.innerHTML = `<i class="bi bi-trash3-fill me-1"></i> Supprimer ce lead`;
+                    console.error(err);
+                });
+            }
         });
     }
 
