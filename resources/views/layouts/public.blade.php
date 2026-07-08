@@ -8,32 +8,18 @@
     <!-- SEO Technique -->
     <meta name="description" content="@yield('meta_description', 'Flycom Services par Groupe DigiZone. Experts à Brazzaville : Réseaux, Vidéosurveillance, Solaire, Climatisation et Location.')">
     <link class="canonical" href="{{ url()->current() }}">
-    
-    <meta name="geo.region" content="CG-12" />
-    <meta name="geo.placename" content="Brazzaville" />
-    <meta name="geo.position" content="-4.2634;15.2832" />
-    <meta name="ICBM" content="-4.2634, 15.2832" />
-
-    <!-- Polices & CDNs -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Zone pour l'injection des Schémas JSON-LD spécifiques à chaque page -->
     @yield('json_ld')
 
     <style>
-        /* Styles de positionnement et d'animations du Chatbot M7 */
         .fs-8 { font-size: 0.85rem !important; }
         .fs-9 { font-size: 0.75rem !important; }
         .text-white-70 { color: rgba(255, 255, 255, 0.7) !important; }
         .bg-cyan-soft { background-color: #00B4D8 !important; color: #fff !important; }
         
-        /* Personnalisation de la fenêtre de discussion du chatbot (Bypass de sécurité des styles en ligne) */
         #chatbot-container {
             position: fixed !important;
             bottom: 0 !important;
@@ -41,49 +27,43 @@
             width: 380px !important;
             height: 500px !important;
             z-index: 1085 !important;
-            margin: 0 24px 95px 0 !important; /* Décale la boîte au-dessus du bouton flottant */
+            margin: 0 24px 95px 0 !important;
             border: 1px solid #E2E8F0 !important;
             background-color: #ffffff;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-            display: none; /* Masqué par défaut */
+            display: none;
         }
 
-        /* S'affiche en flexbox vertical quand il est ouvert (sans .d-none) */
         #chatbot-container:not(.d-none) {
             display: flex !important;
         }
 
-        /* CORRECTIF DYNAMIQUE : Le corps de messages s'ajuste de façon fluide */
         #chatbot-messages-box {
-            flex-grow: 1 !important; /* Prend tout l'espace vertical libre */
-            overflow-y: auto !important; /* Autorise le défilement */
-            height: auto !important; /* Supprime le blocage d'origine */
-            min-height: 80px !important; /* Permet de se rétrécir proprement lors du pop du clavier */
+            flex-grow: 1 !important;
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 80px !important;
         }
 
-        /* Empêcher la zone d'écriture d'être écrasée */
         #chatbot-container .card-footer {
             flex-shrink: 0 !important;
         }
 
-        /* ── REFONTE DE CENTRAGE MOBILE-FIRST (Image 1, 2 et 3) ── */
         @media (max-width: 576px) {
             #chatbot-container {
-                /* Positionnement absolu centré (S'adapte dynamiquement à la fermeture/ouverture du clavier !) */
                 position: fixed !important;
                 top: 50% !important;
                 left: 50% !important;
                 transform: translate(-50%, -50%) !important;
                 bottom: auto !important;
                 right: auto !important;
-                margin: 0 !important; /* Annule la marge de bureau */
+                margin: 0 !important;
                 
-                /* Dimensions proportionnées aérées (Laisse 5% de marge sur les côtés - Image 1) */
                 width: 90vw !important; 
                 max-width: 360px !important;
-                height: 78dvh !important; /* Occupe 78% de la hauteur utile restante de l'écran */
+                height: 78dvh !important;
                 max-height: 80dvh !important;
-                border-radius: 16px !important; /* Conserve les bords arrondis */
+                border-radius: 16px !important;
                 box-shadow: 0 15px 45px rgba(5, 14, 45, 0.25) !important;
             }
 
@@ -92,7 +72,6 @@
             }
         }
 
-        /* Styles du preloader pour éviter le blocage de l'écran */
         .loading-lock {
             overflow: hidden !important;
         }
@@ -100,7 +79,7 @@
 </head>
 <body class="loading-lock">
 
-    <!-- PRELOADER UNIQUE -->
+    <!-- PRELOADER -->
     <div id="preloader" class="preloader-overlay" style="opacity: 1; transition: opacity 0.5s ease;">
         <div class="network-particles"></div> 
         <div class="preloader-content text-center">
@@ -125,9 +104,9 @@
         <nav class="navbar navbar-expand-lg navbar-dark container py-3" aria-label="Menu Principal">
             <div class="container-fluid px-0">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                    <div class="brand-logo bg-cyan-gradient rounded-3 p-2 text-white d-flex align-items-center justify-content-center">
+                    <!-- <div class="brand-logo bg-cyan-gradient rounded-3 p-2 text-white d-flex align-items-center justify-content-center">
                         <i class="bi bi-shield-fill-check fs-4"></i>
-                    </div>
+                    </div> -->
                     <span class="fw-extrabold text-white tracking-tight">FLYCOM <span class="text-cyan">SERVICES</span></span>
                 </a>
                 <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Menu">
@@ -152,7 +131,6 @@
         </nav>
     </header>
 
-    <!-- CONTENU DYNAMIQUE DES PAGES -->
     <main>
         @yield('content')
     </main>
@@ -163,10 +141,10 @@
         <div class="container position-relative z-2">
             <div class="row g-4 justify-content-between mb-5">
                 <div class="col-12 col-lg-5">
-                    <a class="d-flex align-items-center gap-2 text-decoration-none mb-3" href="{{ route('home') }}">
+                    <!-- <a class="d-flex align-items-center gap-2 text-decoration-none mb-3" href="{{ route('home') }}">
                         <div class="brand-logo bg-cyan-gradient rounded-3 p-2 text-white d-flex align-items-center justify-content-center">
                             <i class="bi bi-shield-fill-check fs-4"></i>
-                        </div>
+                        </div> -->
                         <span class="fw-extrabold text-white tracking-tight lh-1 footer-brand-text">FLYCOM <span class="text-cyan">SERVICES</span></span>
                     </a>
                     <p class="text-light-muted fs-8 mb-4 pe-lg-5">
@@ -236,19 +214,16 @@
 
     <!-- WIDGETS FLOTTANTS -->
     <div class="floating-widgets">
-        <!-- Bouton flottant du Chatbot IA -->
         <button id="chatbot-toggle-btn" class="widget-btn bg-navy text-cyan shadow" aria-label="Support AI">
             <i id="chatbot-icon" class="bi bi-robot"></i>
         </button>
-        <!-- Bouton flottant WhatsApp -->
         <a href="https://wa.me/242066285741" target="_blank" class="widget-btn bg-success text-white shadow" aria-label="WhatsApp">
             <i class="bi bi-whatsapp"></i>
         </a>
     </div>
 
-    <!-- Interface Graphique épurée de la Fenêtre de Discussion du Chatbot M7 (Bypass de sécurité appliqué & Hauteur dynamique activée !) -->
+    <!-- FENÊTRE DE DISCUSSION CHATBOT -->
     <div id="chatbot-container" class="card border-0 shadow-lg rounded-4 d-none">
-        <!-- En-tête (Navy Blue #0D1B4B) -->
         <div class="card-header text-white d-flex justify-content-between align-items-center py-3 chatbot-header" style="background-color: #0D1B4B; border-top-left-radius: 16px; border-top-right-radius: 16px;">
             <div class="d-flex align-items-center gap-2">
                 <div class="bg-cyan rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; background-color: #00B4D8;">
@@ -262,9 +237,7 @@
             <button id="chatbot-close-btn" class="btn-close btn-close-white btn-sm shadow-none" aria-label="Fermer"></button>
         </div>
 
-        <!-- Zone d'affichage des messages (height fixe supprimée pour permettre le rétrécissement élastique) -->
         <div class="card-body d-flex flex-column gap-3 p-3 chatbot-messages-body" id="chatbot-messages-box" style="background-color: #F8FAFC;">
-            <!-- Message de bienvenue initial -->
             <div class="d-flex gap-2 align-items-start">
                 <div class="bg-cyan rounded-circle p-1 text-white text-center" style="width: 24px; height: 24px; background-color: #00B4D8; font-size: 0.7rem;">
                     <i class="bi bi-robot"></i>
@@ -275,10 +248,9 @@
             </div>
         </div>
 
-        <!-- Zone de saisie utilisateur (Sécurisée contre le rétrécissement du clavier) -->
         <div class="card-footer bg-white border-top p-2 chatbot-input-footer" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
             <form id="chatbot-input-form" class="input-group">
-                <input type="text" id="chatbot-user-text" class="form-control border-0 shadow-none fs-8" placeholder="Écrivez votre message..." autocomplete="off" required>
+                <input type="text" id="chatbot-user-text" class="form-control border-0 shadow-none fs-8" placeholder="Écrivez votre message..." autocomplete="off" required style="box-shadow: none !important;">
                 <button class="btn btn-cyan rounded-3 text-white px-3 d-flex align-items-center justify-content-center" type="submit" style="background-color: #00B4D8; border: none;">
                     <i class="bi bi-send-fill"></i>
                 </button>
@@ -289,12 +261,12 @@
     <!-- Chargement de Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- SCRIPT SYSTÈME : EXTINCTION DU PRELOADER ET ANIMATIONS DU CHATBOT (Image M7) -->
+    <!-- SCRIPT SYSTÈME -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
             // ========================================================
-            // 1. EXTINCTION ET SIMULATION DU PRELOADER (Libère le body-lock)
+            // 1. EXTINCTION ET SIMULATION DU PRELOADER
             // ========================================================
             const preloader = document.getElementById('preloader');
             const preloaderProgress = document.getElementById('preloaderProgress');
@@ -309,7 +281,6 @@
                     if (progress >= 100) {
                         clearInterval(interval);
                         
-                        // Transition en fondu vers le haut
                         preloader.style.opacity = '0';
                         preloader.style.transition = 'opacity 0.4s ease';
                         
@@ -322,7 +293,37 @@
             }
 
             // ========================================================
-            // 2. ANIMATION ET APPELS D'API GEMINI DU CHATBOT (Image M7)
+            // 2. PARSEUR ET FORMATEUR DE BALISES MULTI-MODÈLES (UX Correctif - Nouveau)
+            // ========================================================
+            /**
+             * Traduit les résidus de formatage Markdown de Gemini (astérisques)
+             * en balises HTML robustes de mise en page (gras, italique, etc.) [1.1.4, 1.4.1].
+             */
+            function formatMarkdownToHtml(text) {
+                if (!text) return '';
+                
+                // Protection native anti-injection XSS [1.1.4, 1.4.1]
+                let escapedText = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+
+                // Décodage du format gras (**texte** ou __texte__) [1.1.4, 1.4.1]
+                escapedText = escapedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                escapedText = escapedText.replace(/__(.*?)__/g, '<strong>$1</strong>');
+
+                // Décodage du format italique (*texte* ou _texte_) [1.1.4, 1.4.1]
+                escapedText = escapedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                escapedText = escapedText.replace(/_(.*?)_/g, '<em>$1</em>');
+
+                // Nettoyage esthétique des doubles retours à la ligne excédentaires [1.1.4, 1.4.1]
+                return escapedText;
+            }
+
+            // ========================================================
+            // 3. ANIMATION ET APPELS D'API DU CHATBOT (ChatGPT & Gemini)
             // ========================================================
             const toggleBtn = document.getElementById('chatbot-toggle-btn');
             const closeBtn = document.getElementById('chatbot-close-btn');
@@ -332,7 +333,6 @@
             const messagesBox = document.getElementById('chatbot-messages-box');
             const chatbotIcon = document.getElementById('chatbot-icon');
 
-            // Ouvrir/Fermer la fenêtre au clic sur le bouton flottant
             if (toggleBtn && container) {
                 toggleBtn.addEventListener('click', () => {
                     container.classList.toggle('d-none');
@@ -353,22 +353,18 @@
                 });
             }
 
-            // Gestion de l'envoi du message en AJAX vers le contrôleur Laravel
             if (form) {
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
                     const text = userInput.value.trim();
                     if (!text) return;
 
-                    // Afficher le message de l'utilisateur à l'écran
                     appendUserMessage(text);
                     userInput.value = '';
 
-                    // Afficher l'indicateur de chargement de l'IA (clignotant)
                     const loadingId = appendLoadingIndicator();
                     scrollToBottom();
 
-                    // Récupérer l'ID de conversation s'il est déjà stocké localement dans la session
                     const conversationId = localStorage.getItem('chatbot_conversation_id');
 
                     const payload = {
@@ -376,9 +372,7 @@
                         conversation_id: conversationId
                     };
 
-                    const url = `{{ url('api/chatbot/message') }}`;
-
-                    fetch(url, {
+                    fetch(`{{ url('api/chatbot/message') }}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -391,15 +385,13 @@
                         return res.json();
                     })
                     .then(data => {
-                        // Supprimer l'indicateur de chargement
                         removeLoadingIndicator(loadingId);
 
-                        // Enregistrer l'ID de conversation pour maintenir le contexte
                         if (data.id_conversation) {
                             localStorage.setItem('chatbot_conversation_id', data.id_conversation);
                         }
 
-                        // Afficher la réponse de Gemini
+                        // Appel du parseur de balises HTML avant affichage à l'écran (Résout l'erreur d'astérisques) [1.1.4, 1.4.1]
                         appendAiMessage(data.reply);
                         scrollToBottom();
                     })
@@ -414,9 +406,8 @@
             function appendUserMessage(text) {
                 const html = `
                     <div class="d-flex justify-content-end mb-2">
-                        <!-- Ajout de white-space: pre-line; pour gérer proprement les retours à la ligne -->
                         <div class="p-2.5 rounded-3 bg-cyan-soft text-white small" style="max-width: 80%; white-space: pre-line;">
-                            ${text}
+                            ${formatMarkdownToHtml(text)}
                         </div>
                     </div>
                 `;
@@ -429,9 +420,8 @@
                         <div class="bg-cyan rounded-circle p-1 text-white text-center" style="width: 24px; height: 24px; background-color: #00B4D8; font-size: 0.7rem;">
                             <i class="bi bi-robot"></i>
                         </div>
-                        <!-- Ajout de white-space: pre-line; pour forcer l'affichage propre des paragraphes -->
                         <div class="p-2.5 rounded-3 text-dark small" style="background-color: #E2E8F0; max-width: 80%; white-space: pre-line;">
-                            ${text}
+                            ${formatMarkdownToHtml(text)}
                         </div>
                     </div>
                 `;
@@ -451,7 +441,7 @@
                         </div>
                     </div>
                 `;
-                messagesBox.insertAdjacentHTML('beforeend', html); // Corrigé : utilise la variable messagesBox existante
+                messagesBox.insertAdjacentHTML('beforeend', html);
                 return id;
             }
 
@@ -459,9 +449,6 @@
                 const el = document.getElementById(id);
                 if (el) el.remove();
             }
-
-            // Expose l'indicateur pour qu'il soit nettoyable hors du scope local
-            window.removeLoadingIndicator = removeLoadingIndicator;
 
             function scrollToBottom() {
                 messagesBox.scrollTop = messagesBox.scrollHeight;

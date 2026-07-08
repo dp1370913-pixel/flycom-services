@@ -53,23 +53,28 @@ class VitrineController extends Controller
         return view('public.contact');
     }
 
-    // 6.1 Traiter la soumission du formulaire de contact (Flux Métier 1 - CRM)
+    /**
+     * 6.1 Traiter la soumission du formulaire de contact (Flux Métier 1 - CRM)
+     * supporte la sélection de multiples services (Checkboxes) ou de service unique (fiche technique)
+     */
     public function storeContact(Request $request)
     {
-        // Validation des entrées utilisateur du formulaire public (M2)
+        // Validation des entrées utilisateur (M2) incluant la multi-sélection
         $validated = $request->validate([
-            'nom'        => ['required', 'string', 'max:100'],
-            'prenom'     => ['required', 'string', 'max:100'],
-            'telephone'  => ['required', 'string', 'max:50'],
-            'email'      => ['nullable', 'email', 'max:150'],
-            'entreprise' => ['nullable', 'string', 'max:150'],
-            'adresse'    => ['nullable', 'string'],
-            'message'    => ['required', 'string'],
-            'id_service' => ['nullable', 'string'] // Reçoit la valeur textuelle : 'reseau', 'videosurveillance', etc.
+            'nom'                  => ['required', 'string', 'max:100'],
+            'prenom'               => ['required', 'string', 'max:100'],
+            'telephone'            => ['required', 'string', 'max:50'],
+            'email'                => ['nullable', 'email', 'max:150'],
+            'entreprise'           => ['nullable', 'string', 'max:150'],
+            'adresse'              => ['nullable', 'string'],
+            'message'              => ['required', 'string'],
+            'services_concernes'   => ['nullable', 'array'], // Tableau d'identifiants numériques (Nouveau)
+            'services_concernes.*' => ['exists:services,id_service'],
+            'id_service'           => ['nullable', 'string'] // Valeur textuelle rétrocompatible d'une fiche technique
         ]);
 
-        DB::transaction(function () use ($validated) {
-            // RÈGLE MÉTIER (MLD) : Logique UPSERT stricte sur le numéro de téléphone unique du client
+        DB::transaction(function () use ($validated, $request) {
+            // RÈGLE MÉTIER (MLD) : Logique UPSERT sur le numéro de téléphone unique du client
             $client = Client::updateOrCreate(
                 ['telephone' => $validated['telephone']],
                 [
@@ -85,55 +90,68 @@ class VitrineController extends Controller
             // RÈGLE MÉTIER : Création du Lead qualifié
             $lead = Lead::create([
                 'id_client'       => $client->id_client,
-                'id_conversation' => null, // Formulaire classique non issu de l'IA
+                'id_conversation' => null, // Formulaire classique web non issu de l'IA
                 'message_origine' => $validated['message'],
-                'statut'          => 'Nouveau', // Place l'opportunité dans la colonne 'Nouveau' du Kanban
+                'statut'          => 'Nouveau', // Place d'office l'opportunité dans la colonne 'Nouveau' du Kanban
                 'priorite'        => 'Normale',
                 'source'          => 'Site_web'
             ]);
 
-            // CONVERSION / MAPPAGE : Traduit la clé textuelle du select en id_service numérique de la base de données
-            $serviceNameMap = [
-                'reseau'           => 'Réseaux Informatiques',
-                'videosurveillance'=> 'Vidéosurveillance',
-                'acces'            => 'Contrôle d\'accès',
-                'barbele'          => 'Barbelé Électrique',
-                'solaire'          => 'Panneaux Solaires',
-                'climatisation'    => 'Climatisation',
-                'location'         => 'Location de Véhicules',
-                'sonorisation'     => 'Location Sonorisation'
-            ];
+            // Mappeur d'identifiants pour la multi-sélection
+            $servicesToAttach = $request->input('services_concernes', []);
 
-            if (!empty($validated['id_service'])) {
+            // Fallback d'intégrité : si l'utilisateur provient d'un clic de fiche technique unique (id_service textuel)
+            if (empty($servicesToAttach) && !empty($validated['id_service'])) {
+                $serviceNameMap = [
+                    'reseau'           => 'Réseaux Informatiques',
+                    'videosurveillance'=> 'Vidéosurveillance',
+                    'acces'            => 'Contrôle d\'accès',
+                    'barbele'          => 'Barbelé Électrique',
+                    'solaire'          => 'Panneaux Solaires',
+                    'climatisation'    => 'Climatisation',
+                    'location'         => 'Location de Véhicules',
+                    'sonorisation'     => 'Location Sonorisation'
+                ];
+
                 $mappedName = $serviceNameMap[$validated['id_service']] ?? null;
                 if ($mappedName) {
                     $service = Service::where('nom_service', $mappedName)->first();
                     if ($service) {
-                        // Liaison associative (lead_services)
-                        $lead->services()->attach($service->id_service);
+                        $servicesToAttach[] = $service->id_service;
                     }
                 }
             }
 
+            // Liaison relationnelle N-N d'intégrité (lead_services)
+            if (!empty($servicesToAttach)) {
+                $lead->services()->sync($servicesToAttach);
+            }
+
             // Récupérer le compte robot système pour journaliser l'interaction
             $botUser = User::where('role', 'System_Bot')->first();
-            $idUser = $botUser ? $botUser->id_user : 1; // Fallback sur l'Admin de garde si non créé
+            $idUser = $botUser ? $botUser->id_user : 1; // Fallback sur l'Admin si non créé
+
+            // Extraction textuelle des services demandés pour enrichir l'historique client
+            $servicesNames = $lead->services()->pluck('nom_service')->join(', ');
+            $historyNote = "Formulaire de contact soumis par le prospect." . 
+                           (!empty($servicesNames) ? " Prestations souhaitées : " . $servicesNames . "." : "") . 
+                           " Message d'origine : " . $validated['message'];
 
             // RÈGLE MÉTIER : Journaliser le contact dans l'historique client
             Interaction::create([
                 'id_client'  => $client->id_client,
                 'id_user'    => $idUser,
                 'id_lead'    => $lead->id_lead,
-                'type_canal' => 'Chatbot', // 'Chatbot' correspond au canal de log configuré pour vos paramètres
+                'type_canal' => 'Chatbot', // 'Chatbot' correspond au canal de log configuré pour le site vitrine
                 'date'       => now(),
-                'note'       => "Formulaire de contact soumis par le prospect. Message d'origine : " . $validated['message']
+                'note'       => $historyNote
             ]);
         });
 
-        return redirect()->route('contact')->with('success', 'Votre demande de contact a bien été reçue. Un conseiller de Flycom Services vous contactera rapidement.');
+        return redirect()->route('contact')->with('success', 'Votre demande de diagnostic gratuit a bien été reçue. Un conseiller de Flycom Services vous contactera rapidement.');
     }
 
-    // 7. Fiche Technique dynamique d'un service (Image 2 - Fusion MySQL & Métadonnées)
+    // 7. Fiche Technique dynamique d'un service (Fusion MySQL & Métadonnées)
     public function serviceDetail($slug)
     {
         // Extraction dynamique du service de la base de données selon son nom converti en slug (M1)
@@ -279,7 +297,7 @@ class VitrineController extends Controller
 
         $service = [
             'title'          => $dbService->nom_service,
-            'image'          => asset($dbService->image), // Charge l'image locale que vous venez de stocker !
+            'image'          => asset($dbService->image), 
             'short_desc'     => $extra['short_desc'],
             'long_desc'      => $dbService->description,
             'price_badge'    => $extra['price_badge'],

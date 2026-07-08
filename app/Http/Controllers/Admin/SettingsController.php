@@ -9,8 +9,7 @@ use App\Models\User;
 use App\Models\Interaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rule;
 use Smalot\PdfParser\Parser;
 
 class SettingsController extends Controller
@@ -24,46 +23,13 @@ class SettingsController extends Controller
         $iaLogs = Interaction::with('client')
             ->whereIn('type_canal', ['Chatbot', 'WhatsApp'])
             ->orderBy('date', 'desc')
-            ->take(20) 
+            ->take(20)
             ->get();
 
         return view('admin.settings.index', compact('configs', 'users', 'iaLogs'));
     }
 
-    // 2. Traiter la modification d'avatar (Corrigé et sécurisé via DB directe)
-    public function updateAvatar(Request $request)
-    {
-        $request->validate([
-            'avatar_file' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'] // Limite à 2 Mo
-        ]);
-
-        $user = auth()->user();
-
-        if ($request->hasFile('avatar_file')) {
-            // Nettoyage de l'ancien fichier d'avatar physique s'il existe déjà sur le serveur
-            if ($user->avatar && file_exists(public_path($user->avatar))) {
-                @unlink(public_path($user->avatar));
-            }
-
-            // Générer un dossier d'avatars s'il n'existe pas encore
-            if (!file_exists(public_path('assets/avatars'))) {
-                mkdir(public_path('assets/avatars'), 0755, true);
-            }
-
-            $file = $request->file('avatar_file');
-            $fileName = 'avatar_user_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('assets/avatars'), $fileName);
-            
-            // Mise à jour directe et sécurisée en base de données pour cibler uniquement la colonne d'avatar (Bypasse l'erreur de colonne d'image)
-            DB::table('users')->where('id', $user->id)->update([
-                'avatar' => 'assets/avatars/' . $fileName
-            ]);
-        }
-
-        return redirect()->route('admin.settings.index')->with('success', 'Votre avatar de profil a bien été mis à jour.');
-    }
-
-    // 3. Mettre à jour les informations d'entreprise
+    // 2. Mettre à jour les informations d'entreprise
     public function updateEntreprise(Request $request)
     {
         $validated = $request->validate([
@@ -81,7 +47,7 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'Les informations d\'entreprise ont bien été mises à jour.');
     }
 
-    // 4. Mettre à jour la configuration fiscale
+    // 3. Mettre à jour la configuration fiscale
     public function updateFiscal(Request $request)
     {
         $validated = $request->validate([
@@ -95,7 +61,7 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'La configuration fiscale et monétaire a bien été enregistrée.');
     }
 
-    // 5. Mettre à jour l'activation de l'IA WhatsApp
+    // 4. Mettre à jour les horaires et l'activation de l'IA WhatsApp
     public function updateIA(Request $request)
     {
         $validated = $request->validate([
@@ -114,16 +80,20 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'Les paramètres de l\'agent IA WhatsApp ont bien été modifiés.');
     }
 
-    // 6. Mettre à jour l'IA du site web (Avec import PDF)
+    /**
+     * 4.1 Mettre à jour la configuration de l'IA Multi-fournisseurs (Grok/ChatGPT/Gemini - Mis à jour)
+     */
     public function updateWebIA(Request $request)
     {
         $validated = $request->validate([
-            'gemini_model'           => ['required', 'string', 'max:50'],
+            'ai_provider'            => ['required', 'string', 'max:50'],
+            'ai_model'               => ['required', 'string', 'max:50'],
             'chatbot_system_prompt'  => ['required', 'string'],
             'chatbot_knowledge_base' => ['nullable', 'string'],
-            'chatbot_knowledge_pdf'  => ['nullable', 'file', 'mimes:pdf', 'max:10240'], 
+            'chatbot_knowledge_pdf'  => ['nullable', 'file', 'mimes:pdf', 'max:10240'], // Max 10 Mo
         ]);
 
+        // Traiter l'extraction de texte du fichier PDF s'il est fourni (Knowledge RAG)
         if ($request->hasFile('chatbot_knowledge_pdf')) {
             try {
                 $pdfFile = $request->file('chatbot_knowledge_pdf');
@@ -152,17 +122,18 @@ class SettingsController extends Controller
         $chatbotActive = $request->has('chatbot_active') ? 'true' : 'false';
 
         Config::updateOrCreate(['cle' => 'chatbot_active'], ['valeur' => $chatbotActive]);
-        Config::updateOrCreate(['cle' => 'gemini_model'], ['valeur' => $validated['gemini_model']]);
+        Config::updateOrCreate(['cle' => 'ai_provider'], ['valeur' => $validated['ai_provider']]);
+        Config::updateOrCreate(['cle' => 'ai_model'], ['valeur' => $validated['ai_model']]);
         Config::updateOrCreate(['cle' => 'chatbot_system_prompt'], ['valeur' => $validated['chatbot_system_prompt']]);
         Config::updateOrCreate(['cle' => 'chatbot_knowledge_base'], ['valeur' => $validated['chatbot_knowledge_base'] ?? '']);
 
         Artisan::call('view:clear');
         Artisan::call('config:clear');
 
-        return redirect()->route('admin.settings.index')->with('success', 'La configuration de l\'assistant IA du site vitrine a bien été enregistrée.');
+        return redirect()->route('admin.settings.index')->with('success', 'La configuration de l\'assistant virtuel et son routage multi-modèles ont bien été enregistrés.');
     }
 
-    // 7. Créer un nouveau collaborateur
+    // 5. Créer un nouvel utilisateur / collaborateur
     public function storeUser(Request $request)
     {
         $validated = $request->validate([
@@ -170,7 +141,7 @@ class SettingsController extends Controller
             'nom_user'    => ['required', 'string', 'max:100'],
             'email'       => ['required', 'email', 'max:150', 'unique:users,email'],
             'role'        => ['required', 'in:Admin,Commercial,Lecture,System_Bot'],
-            'password'    => ['required', 'string', Password::min(8)->letters()->numbers()->symbols()],
+            'password'    => ['required', 'string', 'min:6'],
         ]);
 
         User::create([
