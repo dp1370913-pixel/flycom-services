@@ -25,7 +25,7 @@ Route::get('/portfolio', [VitrineController::class, 'portfolio'])->name('portfol
 Route::get('/faq', [VitrineController::class, 'faq'])->name('faq');
 Route::get('/about', [VitrineController::class, 'about'])->name('about');
 
-// Formulaire de contact public
+// Route d'affichage et de réception de formulaire de contact
 Route::get('/contact', [VitrineController::class, 'contact'])->name('contact');
 Route::post('/contact', [VitrineController::class, 'storeContact'])->name('contact.store');
 
@@ -36,14 +36,17 @@ Route::post('/api/chatbot/message', [ChatbotController::class, 'handleMessage'])
 |--------------------------------------------------------------------------
 | 2. ROUTES D'AUTHENTIFICATION SÉCURISÉES (AVEC 2FA ET RATE LIMITING)
 |--------------------------------------------------------------------------
+| - Obfuscation : /login devient /espace-securise-flycom
+| - Rate Limiting : Limité à 5 tentatives de connexion par minute par IP
 */
 Route::get('/espace-securise-flycom', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/espace-securise-flycom', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Double Authentification (2FA) - OTP par Email
+// Double Authentification (2FA) - OTP par Email (Sécurisées par Rate Limiting)
 Route::get('/verify-identity', [AuthController::class, 'show2FAForm'])->name('2fa.index');
 Route::post('/verify-identity', [AuthController::class, 'verify2FA'])->name('2fa.verify')->middleware('throttle:5,1');
+Route::post('/verify-identity/resend', [AuthController::class, 'resendOTP'])->name('2fa.resend')->middleware('throttle:3,1'); // Limité à 3 renvois par minute (Nouveau)
 
 /*
 |--------------------------------------------------------------------------
@@ -59,10 +62,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         
-        // API pour la cloche de notification dynamique (Module M5)
+        // Route d'API pour la cloche de notification dynamique (Module M5)
         Route::get('/notifications', [DashboardController::class, 'getNotifications'])->name('admin.notifications');
         
-        // API pour la barre de recherche globale unifiée
+        // Route d'API pour la barre de recherche globale unifiée
         Route::get('/global-search', [DashboardController::class, 'globalSearch'])->name('admin.globalSearch');
         
         // Profil personnel
@@ -117,14 +120,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
 
     // ────────────────────────────────────────────────────────────
-    // SOUS-GROUPE C : ACTIONS CRITIQUES & PARAMÈTRES (Admin uniquement)
+    // SOUS-GROUPE C : ACTIONS SÉCURISÉES (Admin uniquement)
     // ────────────────────────────────────────────────────────────
     Route::middleware(['role:Admin'])->group(function () {
         
         // Seul l'administrateur peut supprimer définitivement un devis
         Route::delete('/devis/{id}/delete', [DevisController::class, 'delete'])->name('admin.devis.delete');
 
-        // Seul l'administrateur peut créer, modifier ou supprimer des services du catalogue (Nouveau)
+        // Seul l'administrateur peut créer, modifier ou supprimer des services du catalogue
         Route::post('/services-catalogue', [ServiceController::class, 'store'])->name('admin.services.store');
         Route::post('/services-catalogue/{id}/update', [ServiceController::class, 'update'])->name('admin.services.update');
         Route::delete('/services-catalogue/{id}/delete', [ServiceController::class, 'delete'])->name('admin.services.delete');

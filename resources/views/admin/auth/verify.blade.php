@@ -212,6 +212,14 @@
         <div class="brand-title">FLYCOM<span class="sep">|</span><span class="crm">2FA</span></div>
         <div class="brand-sub">Entrez le code envoyé par e-mail</div>
 
+        <!-- Notification de succès de renvoi du code OTP (Nouveau) -->
+        @if (session('success'))
+            <div class="alert alert-success py-2.5 px-3 rounded-3 mb-4 d-flex align-items-center gap-2 border-0 text-start" style="background-color: rgba(25, 135, 84, 0.12); color: #22C55E !important; font-size: 0.78rem; font-weight: 600;">
+                <i class="bi bi-check-circle-fill"></i> 
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
         <!-- Erreurs de validation -->
         @if ($errors->any())
             <div class="alert-errors">
@@ -247,6 +255,14 @@
             <button type="submit" class="btn-cta">
                 <i class="bi bi-check-circle-fill"></i>
                 Confirmer l'identité
+            </button>
+        </form>
+
+        <!-- Formulaire secondaire pour la demande de renvoi (Nouveau) -->
+        <form action="{{ route('2fa.resend') }}" method="POST" class="mt-4 text-center">
+            @csrf
+            <button type="submit" class="btn btn-link text-cyan text-decoration-none fs-8 fw-semibold" style="box-shadow: none; font-size: 0.75rem; color: #00D2F4; background: none; border: none; outline: none !important;">
+                <i class="bi bi-arrow-clockwise me-1"></i> Renvoyer le code d'activation
             </button>
         </form>
 
