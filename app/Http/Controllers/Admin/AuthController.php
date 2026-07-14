@@ -33,6 +33,26 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // ──────────────────────────────────────────────────────────────────────
+        // 🛠️ CORRECTIF TEMPORAIRE : CONNEXION DIRECTE SANS ENVOI D'E-MAIL 2FA
+        // ──────────────────────────────────────────────────────────────────────
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+
+            $user = Auth::user();
+            $user->derniere_connexion = Carbon::now();
+            $user->save();
+
+            // Nettoyage de l'intended URL en cas d'interférence
+            $intendedUrl = session()->get('url.intended');
+            if ($intendedUrl && (str_contains($intendedUrl, '/notifications') || str_contains($intendedUrl, '/global-search') || str_contains($intendedUrl, '/api/'))) {
+                session()->forget('url.intended');
+            }
+
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        /* ── DÉSACTIVATION TEMPORAIRE DE LA DOUBLE AUTHENTIFICATION (COMMENTÉ) ──
         if (Auth::validate($credentials)) {
             $user = User::where('email', $credentials['email'])->first();
 
@@ -55,6 +75,7 @@ class AuthController extends Controller
 
             return redirect()->route('2fa.index');
         }
+        */
 
         return back()->withErrors([
             'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
@@ -95,8 +116,6 @@ class AuthController extends Controller
             $user->save();
 
             // ── CORRECTIF ANTI-REDIRECTION AJAX (Fidèle à l'erreur rencontrée) ──
-            // Si la dernière URL interceptée en session est une requête d'arrière-plan (comme l'API de notifications ou de recherche),
-            // on l'efface pour rediriger proprement et par défaut vers le Dashboard d'accueil.
             $intendedUrl = session()->get('url.intended');
             if ($intendedUrl && (str_contains($intendedUrl, '/notifications') || str_contains($intendedUrl, '/global-search') || str_contains($intendedUrl, '/api/'))) {
                 session()->forget('url.intended');
@@ -110,7 +129,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // 5. Régénérer et renvoyer un nouveau code OTP par Email (100% opérationnel)
+    // 5. Régénérer et renvoyer un nouveau code OTP par Email
     public function resendOTP(Request $request)
     {
         if (!session()->has('2fa:user_id')) {
