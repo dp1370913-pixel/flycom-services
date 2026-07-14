@@ -15,7 +15,7 @@ return new class extends Migration
             $table->text('message_origine')->nullable();
             $table->enum('statut', ['Nouveau', 'Contacte', 'Devis_envoye', 'Negociation', 'Gagne', 'Perdu'])->default('Nouveau');
             $table->enum('priorite', ['Haute', 'Normale', 'Basse'])->default('Normale');
-            $table->enum('source', ['Site_web', 'WhatsApp', 'Chatbot', 'Appel_direct', 'Recommandation'])->default('Site_web');
+            $table->enum('source', ['Site_web', 'WhatsApp', 'Chatbot', 'Appel_direct', 'Recommandation','Email'])->default('Site_web');
             $table->dateTime('prochaine_relance')->nullable(); // Précision temporelle utile pour l'IA WhatsApp
             $table->timestamps();
         });
