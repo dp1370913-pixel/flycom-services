@@ -155,3 +155,21 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
 
 });
+
+/*
+|--------------------------------------------------------------------------
+| 4. ROUTE TEMPORAIRE DE MIGRATION CLOUD (À SÉCURISER ET SUPPRIMER APRÈS RUN !)
+|--------------------------------------------------------------------------
+*/
+Route::get('/migrate-and-seed-cloud-db-9824', function() {
+    try {
+        // Force l'exécution des migrations et des seeders en production
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+            '--force' => true, // Obligatoire pour outrepasser les sécurités de production de Laravel
+            '--seed' => true
+        ]);
+        return "Félicitations, la base de données cloud a été migrée et peuplée avec succès !";
+    } catch (\Exception $e) {
+        return "Erreur lors de la migration : " . $e->getMessage();
+    }
+});
