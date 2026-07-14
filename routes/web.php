@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Public\VitrineController;
 use App\Http\Controllers\Public\ChatbotController;
+use App\Http\Controllers\Public\WhatsAppController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LeadController;
@@ -31,6 +32,10 @@ Route::post('/contact', [VitrineController::class, 'storeContact'])->name('conta
 
 // Route d'API pour le chatbot intelligent public (Module M7)
 Route::post('/api/chatbot/message', [ChatbotController::class, 'handleMessage'])->name('api.chatbot.message');
+
+// Routes d'API pour l'Agent intelligent officiel WhatsApp (Module M8 - Nouveau)
+Route::get('/webhook/whatsapp', [WhatsAppController::class, 'verifyWebhook'])->name('api.whatsapp.verify');
+Route::post('/webhook/whatsapp', [WhatsAppController::class, 'handleWebhook'])->name('api.whatsapp.handle');
 
 /*
 |--------------------------------------------------------------------------
@@ -121,11 +126,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
 
     // ────────────────────────────────────────────────────────────
-    // SOUS-GROUPE C : ACTIONS CRITIQUES & PARAMÈTRES (Admin uniquement)
+    // SOUS-GROUPE C : ACTIONS SÉCURISÉES (Admin uniquement)
     // ────────────────────────────────────────────────────────────
     Route::middleware(['role:Admin'])->group(function () {
         
-        // Devis et Factures
         Route::delete('/devis/{id}/delete', [DevisController::class, 'delete'])->name('admin.devis.delete');
 
         // Clients & Leads (Suppression réservée à l'Admin)

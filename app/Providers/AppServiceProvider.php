@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\URL; // Importation indispensable pour forcer l'HTTPS
+use Illuminate\Support\Facades\URL; // 1. Ne pas oublier d'importer la façade URL
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,8 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force l'utilisation du protocole HTTPS en production (évite le Mixed Content sur Render)
-        if (config('app.env') === 'production') {
+        // 2. Si l'adresse de votre site utilise du HTTPS (comme l'URL publique de Ngrok),
+        // nous forçons Laravel à générer TOUS les liens internes en HTTPS.
+        if (str_contains(config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
     }
