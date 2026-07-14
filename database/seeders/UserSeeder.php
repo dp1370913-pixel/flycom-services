@@ -10,21 +10,21 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Compte Administrateur de test (Pour Budry)
+        // Compte Administrateur 
         User::create([
-            'nom_user' => 'NAKOUZEBI',
-            'prenom_user' => 'Budry',
-            'email' => 'admin@flycomservices.cg',
-            'password' => Hash::make('password123'), // Mot de passe par défaut sécurisé
+            'nom_user' => 'PETER',
+            'prenom_user' => 'Daniel',
+            'email' => 'dp1370913@gmail.com',
+            'password' => Hash::make('Adminflycom@2026'), // Mot de passe par défaut sécurisé
             'role' => 'Admin'
         ]);
 
-        // Compte Commercial de test (Pour Claunelle)
+        // Compte Commercial 
         User::create([
             'nom_user' => 'TSOUMBOU',
             'prenom_user' => 'Claunelle',
-            'email' => 'commercial@flycomservices.cg',
-            'password' => Hash::make('password123'),
+            'email' => 'tclaunellebhrayam@gmail.com',
+            'password' => Hash::make('Comflycom@2026'),
             'role' => 'Commercial'
         ]);
     }
