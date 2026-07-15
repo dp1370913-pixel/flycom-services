@@ -25,7 +25,9 @@ class AuthController extends Controller
         return view('admin.auth.login');
     }
 
-    // 2. Traiter la tentative de connexion initiale
+    /**
+     * 2. Traiter la tentative de connexion initiale (Modifié avec bypass 2FA)
+     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -36,6 +38,27 @@ class AuthController extends Controller
         if (Auth::validate($credentials)) {
             $user = User::where('email', $credentials['email'])->first();
 
+            // ── COMMUTATEUR SÉCURISÉ 2FA (Bypass pour Render/Local sans SMTP) ──
+            // Si l'option CRM_2FA_ACTIVE est définie sur 'false' dans le .env ou les variables d'environnement de Render,
+            // on connecte directement l'utilisateur sans passer par l'étape du mail OTP.
+            $is2faActive = env('CRM_2FA_ACTIVE', true);
+            
+            if ($is2faActive === false || $is2faActive === 'false') {
+                Auth::login($user, $request->boolean('remember'));
+                
+                $user->derniere_connexion = Carbon::now();
+                $user->save();
+
+                // Nettoyer l'URL d'intention si requête AJAX interceptée
+                $intendedUrl = session()->get('url.intended');
+                if ($intendedUrl && (str_contains($intendedUrl, '/notifications') || str_contains($intendedUrl, '/global-search') || str_contains($intendedUrl, '/api/'))) {
+                    session()->forget('url.intended');
+                }
+
+                return redirect()->intended(route('admin.dashboard'));
+            }
+
+            // ── COMMUTATEUR ACTIF : PARCOURS DE DOUBLE AUTHENTIFICATION CLASSIQUE ──
             $otp = rand(100000, 999999);
             Cache::put('2fa_otp_' . $user->id, $otp, now()->addMinutes(10));
 
@@ -94,9 +117,7 @@ class AuthController extends Controller
             $user->derniere_connexion = Carbon::now();
             $user->save();
 
-            // ── CORRECTIF ANTI-REDIRECTION AJAX (Fidèle à l'erreur rencontrée) ──
-            // Si la dernière URL interceptée en session est une requête d'arrière-plan (comme l'API de notifications ou de recherche),
-            // on l'efface pour rediriger proprement et par défaut vers le Dashboard d'accueil.
+            // Correctif anti-redirection AJAX
             $intendedUrl = session()->get('url.intended');
             if ($intendedUrl && (str_contains($intendedUrl, '/notifications') || str_contains($intendedUrl, '/global-search') || str_contains($intendedUrl, '/api/'))) {
                 session()->forget('url.intended');
@@ -110,7 +131,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // 5. Régénérer et renvoyer un nouveau code OTP par Email (100% opérationnel)
+    // 5. Régénérer et renvoyer un nouveau code OTP par Email
     public function resendOTP(Request $request)
     {
         if (!session()->has('2fa:user_id')) {
@@ -136,7 +157,7 @@ class AuthController extends Controller
         return back()->with('success', 'Un nouveau code d\'authentification a été généré et expédié à votre adresse e-mail.');
     }
 
-    // 6. Mettre à jour les informations du profil utilisateur connecté (Image 23)
+    // 6. Mettre à jour les informations du profil utilisateur connecté
     public function updateProfile(Request $request)
     {
         $user = auth()->user();

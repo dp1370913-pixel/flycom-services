@@ -21,6 +21,7 @@ return new class extends Migration
             
             // Ajout de vos contraintes de rôles d'accès du CRM (Admin, Commercial, Lecture, System_Bot)
             $table->enum('role', ['Admin', 'Commercial', 'Lecture', 'System_Bot'])->default('Commercial');
+            $table->string('avatar')->nullable();
             
             $table->dateTime('derniere_connexion')->nullable();
             $table->rememberToken();
