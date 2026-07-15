@@ -22,7 +22,7 @@
 @endphp
 
 <!-- EN-TÊTE DE LA PAGE -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 animate-fade-in">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 animate-fade-in gap-3">
     <div>
         <h1 class="h3 fw-extrabold text-navy mb-1">Agenda &amp; Relances</h1>
         <p class="text-muted fs-8 mb-0">
@@ -31,8 +31,8 @@
             {{ $relancesDeLaSemaine->count() }} cette semaine
         </p>
     </div>
-    <div class="mt-3 mt-md-0">
-        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn" data-bs-toggle="modal" data-bs-target="#newRelanceModal" style="background-color: #00B4D8; border: none; color: #fff;">
+    <div class="mt-1 mt-md-0 w-100 w-md-auto text-end">
+        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#newRelanceModal" style="background-color: #00B4D8; border: none; color: #fff;">
             <i class="bi bi-calendar-plus me-1"></i> Nouvelle relance
         </button>
     </div>
@@ -43,7 +43,7 @@
     
     <!-- COLONNE DE GAUCHE : LE CALENDRIER MENSUEL (75% de largeur) -->
     <div class="col-12 col-lg-9">
-        <div class="card border-0 shadow-sm p-4 bg-white rounded-4 h-100">
+        <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 h-100">
             
             <!-- Navigation entre les mois -->
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -58,7 +58,7 @@
 
             <!-- Grille du calendrier -->
             <div class="table-responsive">
-                <table class="table table-bordered calendar-table mb-0 text-center align-middle fs-8">
+                <table class="table table-bordered calendar-table mb-0 text-center align-middle fs-8" style="min-width: 600px;">
                     <thead>
                         <tr class="table-light">
                             @foreach($joursSemaine as $jour)
@@ -127,7 +127,7 @@
         <div class="d-flex flex-column gap-4 h-100">
             
             <!-- Liste En retard (100% opérationnel) -->
-            <div class="card border-0 shadow-sm p-4 bg-white rounded-4 flex-grow-1">
+            <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 flex-grow-1">
                 <h3 class="h6 fw-extrabold text-navy mb-4 d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> En retard</span>
                     <span class="badge bg-danger rounded-circle fs-10" style="padding: 4px 6px;">{{ $relancesEnRetard->count() }}</span>
@@ -137,10 +137,10 @@
                     @forelse($relancesEnRetard as $retard)
                     <div class="p-3 rounded-4 border-0 position-relative list-item-hover text-start" style="background-color: #FFF5F5; border: 1px solid #FED7D7 !important; transition: all 0.4s ease-out;">
                         <span class="badge bg-danger text-white fs-10 fw-bold px-2 py-0.5 rounded-pill mb-1">En retard</span>
-                        <strong class="d-block text-navy fs-8 mt-1">{{ $retard->client->prenom }} {{ $retard->client->nom }}</strong>
+                        <strong class="d-block text-navy fs-8 mt-1 text-truncate">{{ $retard->client->prenom }} {{ $retard->client->nom }}</strong>
                         <small class="text-muted fs-10 d-block mb-2">Planifiée le : {{ $retard->prochaine_relance->format('d/m/Y H:i') }}</small>
                         
-                        <!-- Actions de relance immédiates liées au JS asynchrone -->
+                        <!-- Actions de relance immédiates -->
                         <div class="d-flex gap-2">
                             <button class="btn btn-success btn-sm rounded-pill fs-10 px-3 fw-bold btn-agenda-done" data-id="{{ $retard->id_lead }}"><i class="bi bi-check-lg"></i> Fait</button>
                             <button class="btn btn-outline-secondary btn-sm rounded-pill fs-10 px-3 fw-semibold btn-agenda-tomorrow" data-id="{{ $retard->id_lead }}">Demain</button>
@@ -149,29 +149,29 @@
                     @empty
                     <div class="text-center py-4 my-auto">
                         <i class="bi bi-check-circle-fill text-success fs-1 mb-2 d-block"></i>
-                        <span class="fs-8 text-muted fw-semibold">Aucun retard de relance !</span>
+                        <span class="fs-8 text-muted fw-semibold">Aucun retard !</span>
                     </div>
                     @endforelse
                 </div>
             </div>
 
             <!-- Liste Cette semaine -->
-            <div class="card border-0 shadow-sm p-4 bg-white rounded-4 flex-grow-1">
+            <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 flex-grow-1">
                 <h3 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-calendar-range text-cyan me-2"></i> Cette semaine</h3>
                 
                 <div class="d-flex flex-column gap-2 overflow-y-auto" style="max-height: 220px;">
                     @forelse($relancesDeLaSemaine as $semaine)
-                    <div class="p-3 bg-light rounded-4 border border-light d-flex justify-content-between align-items-center list-item-hover">
-                        <div>
-                            <span class="fw-bold d-block fs-8 text-navy">{{ $semaine->client->prenom }} {{ $semaine->client->nom }}</span>
-                            <small class="text-muted fs-10">{{ $semaine->prochaine_relance ? $semaine->prochaine_relance->format('l à H:i') : '—' }}</small>
+                    <div class="p-3 bg-light rounded-4 border border-light d-flex justify-content-between align-items-center gap-2 list-item-hover">
+                        <div class="text-truncate">
+                            <span class="fw-bold d-block fs-8 text-navy text-truncate">{{ $semaine->client->prenom }} {{ $semaine->client->nom }}</span>
+                            <small class="text-muted fs-10 d-block text-truncate">{{ $semaine->prochaine_relance ? $semaine->prochaine_relance->format('l à H:i') : '—' }}</small>
                         </div>
-                        <a href="tel:{{ $semaine->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle" style="background-color: #00B4D8; border: none; color: #fff;"><i class="bi bi-telephone-fill"></i></a>
+                        <a href="tel:{{ $semaine->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle flex-shrink-0" style="background-color: #00B4D8; border: none; color: #fff; width: 30px; height: 32px; display: inline-flex; align-items: center; justify-content: center;"><i class="bi bi-telephone-fill" style="font-size: 0.85rem;"></i></a>
                     </div>
                     @empty
                     <div class="text-center py-4 my-auto">
                         <i class="bi bi-info-circle text-muted fs-1 mb-2 d-block"></i>
-                        <span class="fs-8 text-muted fw-semibold">Aucune relance cette semaine</span>
+                        <span class="fs-8 text-muted fw-semibold">Aucune relance</span>
                     </div>
                     @endforelse
                 </div>
@@ -195,7 +195,7 @@
             
             <form action="{{ route('admin.agenda.store') }}" method="POST">
                 @csrf
-                <div class="modal-body px-4 py-4 row g-3 fs-8">
+                <div class="modal-body px-4 py-4 row g-3 fs-8 text-start">
                     
                     <!-- Sélection du Lead -->
                     <div class="col-12">
@@ -249,7 +249,7 @@
     }
 </style>
 
-<!-- CODE SCRIPT INTERACTIF DE TRAITEMENT ET ANIMATION (M3 - 100% opérationnel) -->
+<!-- CODE SCRIPT INTERACTIF DE TRAITEMENT ET ANIMATION -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 1. GESTION DU CLIC "FAIT" (Marquer comme terminé et archiver l'historique d'interaction - MLD)
+    // 1. GESTION DU CLIC "FAIT"
     document.querySelectorAll('.btn-agenda-done').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 2. GESTION DU CLIC "DEMAIN" (Reporter de 24 heures de manière automatique)
+    // 2. GESTION DU CLIC "DEMAIN"
     document.querySelectorAll('.btn-agenda-tomorrow').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();

@@ -8,7 +8,7 @@
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;"></div>
 
 <!-- HEADER DE PAGE -->
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-3">
     <div>
         <h1 class="fw-extrabold text-navy mb-1" style="font-size: 1.6rem;">Pipeline commercial</h1>
         <p class="text-muted mb-0" style="font-size: 0.8rem;">
@@ -16,7 +16,7 @@
         </p>
     </div>
 
-    <div class="d-flex align-items-center gap-2 mt-1">
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-1 w-100 w-md-auto">
         <!-- Commutateur Kanban / Liste -->
         <div class="d-flex rounded-3 overflow-hidden" style="border: 1px solid #E2E8F0; background: #F8FAFC;">
             <button type="button" id="btnShowKanban" class="btn-view-toggle active px-3 py-2" style="font-size: 0.8rem; font-weight: 600; border: none; background: transparent; cursor: pointer;">Kanban</button>
@@ -30,7 +30,7 @@
         @endif
 
         @if(Auth::user()->role !== 'Lecture')
-        <button class="btn rounded-3 px-3 py-2 text-white fw-bold" style="font-size: 0.8rem; background: #0D1B4B; border: none;" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+        <button class="btn rounded-3 px-3 py-2 text-white fw-bold ms-auto ms-sm-0" style="font-size: 0.8rem; background: #0D1B4B; border: none;" data-bs-toggle="modal" data-bs-target="#newLeadModal">
             <i class="bi bi-plus-lg me-1"></i> Nouveau lead
         </button>
         @endif
@@ -38,14 +38,14 @@
 </div>
 
 <!-- BARRE DE RECHERCHE & FILTRE SOURCE -->
-<form action="{{ route('admin.leads.index') }}" method="GET" class="d-flex gap-2 mb-4">
-    <div class="position-relative flex-grow-1" style="max-width: 420px;">
+<form action="{{ route('admin.leads.index') }}" method="GET" class="d-flex flex-column flex-sm-row gap-2 mb-4">
+    <div class="position-relative flex-grow-1" style="max-width: 420px; width: 100%;">
         <span class="position-absolute start-0 top-50 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;">
             <i class="bi bi-search"></i>
         </span>
-        <input type="text" name="search" class="form-control border rounded-3 py-2 ps-5" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0 !important;" placeholder="Rechercher un lead..." value="{{ $search }}">
+        <input type="text" name="search" class="form-control border rounded-3 py-2 ps-5 w-100" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0 !important;" placeholder="Rechercher un lead..." value="{{ $search }}">
     </div>
-    <select name="source" class="form-select rounded-3 py-2" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0; max-width: 200px;" onchange="this.form.submit()">
+    <select name="source" class="form-select rounded-3 py-2 w-100" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0; max-width: 200px;" onchange="this.form.submit()">
         <option value="all">Toutes sources</option>
         <option value="Site_web" {{ $sourceFilter === 'Site_web' ? 'selected' : '' }}>Site web</option>
         <option value="WhatsApp" {{ $sourceFilter === 'WhatsApp' ? 'selected' : '' }}>WhatsApp</option>
@@ -147,7 +147,7 @@
 <!-- VUE LISTE -->
 <div id="listView" class="card border-0 shadow-sm p-4 bg-white rounded-4 d-none">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem; min-width: 800px;">
             <thead class="table-light">
                 <tr>
                     <th>Client</th>
@@ -268,7 +268,7 @@
                         <label class="form-label fw-bold text-navy text-uppercase mb-2" style="font-size: 0.72rem;">Services concernés *</label>
                         <div class="row g-2">
                             @foreach($services as $service)
-                            <div class="col-6 col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <div class="form-check p-2 rounded-3 border border-light bg-light d-flex align-items-center gap-2">
                                     <input class="form-check-input ms-1" type="checkbox" name="services_concernes[]" value="{{ $service->id_service }}" id="svc{{ $service->id_service }}" style="width:15px; height:15px; accent-color: #0D1B4B;">
                                     <label class="form-check-label text-truncate text-navy" style="font-size: 0.78rem;" for="svc{{ $service->id_service }}">{{ $service->nom_service }}</label>
@@ -354,7 +354,7 @@
                     <div class="mb-4 d-none" id="interactionFormContainer" style="border-top: 1px solid #E2E8F0; padding-top: 15px;">
                         <span class="field-label mb-2" style="color: #00B4D8;"><i class="bi bi-chat-left-text-fill"></i> Nouvelle interaction</span>
                         <form id="addInteractionForm" class="row g-2">
-                            <div class="col-md-5">
+                            <div class="col-12 col-md-5">
                                 <select name="type_canal" id="interaction_canal" class="form-select bg-light border-light py-1.5 fs-8" required style="box-shadow:none !important;">
                                     <option value="" disabled selected>Canal...</option>
                                     <option value="Appel">Appel téléphonique</option>
@@ -364,7 +364,7 @@
                                     <option value="Visite_terrain">Visite terrain</option>
                                 </select>
                             </div>
-                            <div class="col-md-7">
+                            <div class="col-12 col-md-7">
                                 <textarea name="note" id="interaction_note" class="form-control bg-light border-light py-1.5 fs-8" rows="1" placeholder="Note d'interaction..." required style="box-shadow:none !important;"></textarea>
                             </div>
                             <div class="col-12 d-flex justify-content-end gap-2 mt-2">
@@ -382,7 +382,7 @@
                     </div>
                 </div>
                 
-                <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
+                <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex flex-wrap gap-2">
                     @if(Auth::user()->role !== 'Lecture')
                     <a href="#" id="btnCreateDevisLink" class="btn text-white fw-bold px-4 py-2.5 flex-grow-1" style="background:#0D1B4B; border-radius: 8px; font-size:0.8rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">Créer un devis</a>
                     <button type="button" class="btn btn-outline-secondary fw-semibold px-4 py-2.5" id="btnToggleInteractionForm" style="border-radius: 8px; font-size:0.8rem;">Ajouter interaction</button>
@@ -444,7 +444,7 @@
                             <label class="form-label fw-bold text-navy text-uppercase mb-2" style="font-size: 0.7rem;">Services d'intérêts *</label>
                             <div class="row g-2">
                                 @foreach($services as $service)
-                                <div class="col-6 col-md-4">
+                                <div class="col-12 col-sm-6 col-md-4">
                                     <div class="form-check p-2 rounded-3 border border-light bg-light d-flex align-items-center gap-2">
                                         <input class="form-check-input ms-1 edit-lead-service-checkbox" type="checkbox" name="services_concernes[]" value="{{ $service->id_service }}" id="editSvc{{ $service->id_service }}" style="width:15px; height:15px; accent-color: #0D1B4B;">
                                         <label class="form-check-label text-truncate text-navy" style="font-size: 0.78rem;" for="editSvc{{ $service->id_service }}">{{ $service->nom_service }}</label>
@@ -610,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <strong class="d-block" style="font-size: 0.85rem;">${iconHtml} ${title}</strong>
                         <span style="font-size: 0.8rem;">${message}</span>
                     </div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-toast="toast" aria-label="Close"></button>
                 </div>
             </div>
         `;

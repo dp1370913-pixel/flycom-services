@@ -10,14 +10,57 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        /* Styles de réajustement responsive pour la barre latérale */
+        @media (max-width: 991.98px) {
+            aside.crm-sidebar {
+                position: fixed !important;
+                top: 0;
+                left: -260px;
+                height: 100vh !important;
+                transition: left 0.3s ease-in-out;
+                z-index: 1050 !important;
+            }
+            aside.crm-sidebar.show {
+                left: 0 !important;
+            }
+            /* Voile d'ombrage en arrière-plan */
+            .sidebar-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(5, 14, 45, 0.6);
+                backdrop-filter: blur(2px);
+                z-index: 1040;
+                display: none;
+                opacity: 0;
+                transition: opacity 0.3s ease-in-out;
+            }
+            .sidebar-backdrop.show {
+                display: block;
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
 <body class="bg-light">
+
+    <!-- Voile d'ombrage pour fermer le menu mobile en cliquant à côté -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <div class="d-flex min-vh-100">
         
         <!-- BARRE LATÉRALE GAUCHE -->
-        <aside class="flex-shrink-0 py-4 position-relative" style="width: 260px; min-height: 100vh; background-color: #050E2D !important; border-right: 1px solid rgba(255, 255, 255, 0.05); z-index: 100; overflow: hidden;">
+        <aside class="crm-sidebar flex-shrink-0 py-4 position-relative" style="width: 260px; min-height: 100vh; background-color: #050E2D !important; border-right: 1px solid rgba(255, 255, 255, 0.05); z-index: 100; overflow: hidden;">
             <div class="network-particles"></div>
+
+            <!-- Bouton de fermeture sur mobile uniquement -->
+            <button class="btn text-white d-lg-none border-0 position-absolute end-0 top-0 mt-3 me-3" id="sidebarClose" type="button" aria-label="Fermer le menu" style="z-index: 1100;">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
 
             <div class="position-relative z-3 d-flex flex-column justify-content-between h-100 w-100">
                 <div>
@@ -131,17 +174,24 @@
         </aside>
 
         <!-- ZONE DE CONTENU À DROITE -->
-        <div class="flex-grow-1 d-flex flex-column">
+        <div class="flex-grow-1 d-flex flex-column overflow-hidden">
             
             <!-- HEADER SUPÉRIEUR -->
             <header class="bg-white border-bottom border-light py-3 px-4 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                    <span class="fs-8 text-muted"><i class="bi bi-calendar-event me-2"></i> {{ \Carbon\Carbon::now()->translatedFormat('l d F Y') }}</span>
-                    <span class="text-muted fs-8">|</span>
-                    <span class="fs-8 text-muted"><i class="bi bi-clock me-2"></i> <span id="crmTime">--:--</span></span>
+                    <!-- Bouton menu hamburger sur mobile uniquement -->
+                    <button class="btn btn-light d-lg-none p-2 border-0 shadow-none" id="sidebarToggle" type="button" style="background: #f1f3f9;">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    
+                    <div class="d-none d-sm-flex align-items-center gap-3">
+                        <span class="fs-8 text-muted"><i class="bi bi-calendar-event me-2"></i> {{ \Carbon\Carbon::now()->translatedFormat('l d F Y') }}</span>
+                        <span class="text-muted fs-8">|</span>
+                        <span class="fs-8 text-muted"><i class="bi bi-clock me-2"></i> <span id="crmTime">--:--</span></span>
+                    </div>
                 </div>
                 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 gap-sm-3">
                     <!-- RECHERCHE GLOBALE INTERACTIVE (Unifiée et 100% opérationnelle) -->
                     <div class="position-relative d-none d-md-block" style="width: 260px; z-index: 1050;">
                         <span class="position-absolute start-0 top-50 translate-middle-y ms-3 text-muted fs-8"><i class="bi bi-search"></i></span>
@@ -157,8 +207,8 @@
                     </div>
 
                     <!-- Bouton public -->
-                    <a href="{{ route('home') }}" target="_blank" class="btn btn-light bg-light border-0 rounded-3 py-2 px-3 fs-8 text-navy fw-semibold d-flex align-items-center gap-2 hover-cyan transition-all">
-                        <i class="bi bi-box-arrow-up-right"></i> Voir le site
+                    <a href="{{ route('home') }}" target="_blank" class="btn btn-light bg-light border-0 rounded-3 py-2 px-2 px-sm-3 fs-8 text-navy fw-semibold d-flex align-items-center gap-2 hover-cyan transition-all">
+                        <i class="bi bi-box-arrow-up-right"></i> <span class="d-none d-sm-inline">Voir le site</span>
                     </a>
                     
                     <!-- CLOCHE DE NOTIFICATION DYNAMIQUE -->
@@ -167,7 +217,7 @@
                             <i class="bi bi-bell fs-7 text-navy"></i>
                             <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="notificationBadge" style="width:10px; height:10px; top: 5px !important; left: 90% !important;"></span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-3" aria-labelledby="notificationBellBtn" id="notificationDropdownMenu" style="width: 340px; max-height: 400px; overflow-y: auto; font-size: 0.8rem; z-index: 1060; margin-top: 10px !important;">
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-3" aria-labelledby="notificationBellBtn" id="notificationDropdownMenu" style="width: 280px; sm-width: 340px; max-height: 400px; overflow-y: auto; font-size: 0.8rem; z-index: 1060; margin-top: 10px !important;">
                             <li class="dropdown-header fw-bold text-navy border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
                                 <span class="fs-7"><i class="bi bi-bell-fill text-cyan me-1"></i> Notifications</span>
                                 <span class="badge bg-danger rounded-pill" id="notificationCountBadge" style="font-size:0.7rem;">0</span>
@@ -222,7 +272,7 @@
             </header>
 
             <!-- CONTENU INJECTÉ -->
-            <div class="p-4 flex-grow-1" style="overflow-y: auto; max-height: calc(100vh - 70px);">
+            <div class="p-3 p-sm-4 flex-grow-1" style="overflow-y: auto; max-height: calc(100vh - 70px);">
                 @yield('content')
             </div>
 
@@ -331,6 +381,27 @@
     <!-- Script de mise à jour de l'heure et des requêtes asynchrones -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // -- LOGIQUE DE COMMUTATION RESPONSIVE DE LA BARRE LATÉRALE --
+            const sidebar = document.querySelector('aside.crm-sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarClose = document.getElementById('sidebarClose');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.add('show');
+                    if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+                });
+            }
+
+            const closeSidebar = () => {
+                if (sidebar) sidebar.classList.remove('show');
+                if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+            };
+
+            if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+            if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+
             // 1. Horloge temps réel
             const timeSpan = document.getElementById('crmTime');
             const updateTime = () => {
@@ -402,7 +473,6 @@
                 globalSearchInput.addEventListener('input', () => {
                     const query = globalSearchInput.value.trim();
                     if (query.length < 2) {
-                        // CORRIGÉ : Utiliser la classe "show" de Bootstrap pour masquer de façon étanche le dropdown-menu (MLD)
                         globalSearchResults.classList.remove('show');
                         return;
                     }
@@ -416,7 +486,6 @@
                             if (data.success) {
                                 globalResultsContainer.innerHTML = '';
                                 if (data.results.length > 0) {
-                                    // CORRIGÉ : Utiliser la classe "show" de Bootstrap pour forcer l'affichage du dropdown-menu (MLD)
                                     globalSearchResults.classList.add('show');
                                     data.results.forEach(res => {
                                         const li = document.createElement('li');
@@ -434,7 +503,6 @@
                                         globalResultsContainer.appendChild(li);
                                     });
                                 } else {
-                                    // CORRIGÉ : Utiliser la classe "show" de Bootstrap pour afficher la mention "Aucun résultat" (MLD)
                                     globalSearchResults.classList.add('show');
                                     globalResultsContainer.innerHTML = `
                                         <li class="text-center py-3 text-muted">
@@ -447,15 +515,12 @@
                         .catch(err => console.error("Global search error:", err));
                 });
 
-                // Fermer la boîte si on clique ailleurs
                 document.addEventListener('click', (e) => {
                     if (!globalSearchInput.contains(e.target) && !globalSearchResults.contains(e.target)) {
-                        // CORRIGÉ : Utiliser la classe "show" de Bootstrap pour masquer proprement (MLD)
                         globalSearchResults.classList.remove('show');
                     }
                 });
 
-                // Raccourci clavier Ctrl+K (ou Cmd+K) pour focaliser la recherche globale (Nouveau)
                 document.addEventListener('keydown', (e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'k') {
                         e.preventDefault();

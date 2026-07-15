@@ -77,9 +77,71 @@
         right: 0 !important;
         left: auto !important;
     }
+
+    /* ── LOGIQUE RESPONSIVE AVANCÉE DES LIGNES DE CRÉATION DE DEVIS SUR SMARTPHONE ── */
+    @media (max-width: 575.98px) {
+        #lignes-table thead {
+            display: none !important; /* Masque les en-têtes de tableau horizontaux */
+        }
+        #lignes-table tr.ligne-article {
+            display: block !important;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        #lignes-table tr.ligne-article td {
+            display: block !important;
+            width: 100% !important;
+            text-align: left !important;
+            padding: 6px 0 !important;
+            border: none !important;
+        }
+        #lignes-table tr.ligne-article td:last-child {
+            text-align: right !important; /* Garde le bouton de suppression à droite */
+            border-top: 1px solid #E2E8F0 !important;
+            margin-top: 4px;
+            padding-top: 10px !important;
+        }
+        #lignes-table .qty-input {
+            text-align: left !important;
+        }
+        #lignes-table .price-input {
+            text-align: left !important;
+        }
+
+        /* ── LOGIQUE RESPONSIVE APERÇU DES LIGNES DE DÉTAILS DE DEVIS SUR SMARTPHONE ── */
+        #detail-lignes-tbody tr {
+            display: block !important;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #detail-lignes-tbody td {
+            display: block !important;
+            width: 100% !important;
+            text-align: left !important;
+            padding: 4px 0 !important;
+            border: none !important;
+        }
+        #detail-lignes-tbody td.text-center, 
+        #detail-lignes-tbody td.text-end {
+            text-align: left !important;
+            padding-left: 0 !important;
+        }
+        #detail-lignes-tbody td.pe-3 {
+            text-align: right !important;
+            border-top: 1px dashed #E2E8F0 !important;
+            margin-top: 4px;
+            padding-top: 8px !important;
+        }
+    }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 px-1 px-sm-3">
     
     <!-- Zone de notification Toast flottante -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;"></div>
@@ -91,7 +153,7 @@
         $countDocuments = $devisList->count();
     @endphp
     
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
             <h1 class="h3 fw-bold text-navy mb-1" style="color: #0D1B4B; font-family: 'Segoe UI', sans-serif;">Devis &amp; Factures</h1>
             <p class="text-muted small mb-0 fw-semibold">
@@ -101,9 +163,9 @@
             </p>
         </div>
         
-        <!-- MASQUÉ SI L'UTILISATEUR EST EN LECTURE SEULE (Isolation UX) -->
+        <!-- MASQUÉ SI L'UTILISATEUR EST EN LECTURE SEULE -->
         @if(Auth::user()->role !== 'Lecture')
-        <button class="btn btn-cyan rounded-3 px-4 py-2 fw-bold text-white shadow-sm" style="background-color: #00B4D8; border: none;" data-bs-toggle="modal" data-bs-target="#createDevisModal">
+        <button class="btn btn-cyan rounded-3 px-4 py-2 fw-bold text-white shadow-sm w-100 w-md-auto" style="background-color: #00B4D8; border: none;" data-bs-toggle="modal" data-bs-target="#createDevisModal">
             <i class="bi bi-file-earmark-plus-fill me-2"></i> Nouveau devis
         </button>
         @endif
@@ -113,13 +175,13 @@
     <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: #fff;">
         <div class="card-body py-3">
             <div class="row g-3 align-items-center">
-                <div class="col-md-6 position-relative">
+                <div class="col-12 col-md-6 position-relative">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
                         <input type="text" id="devis-search-input" class="form-control bg-light border-0" placeholder="Rechercher un devis...">
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <select id="devis-status-filter" class="form-select bg-light border-0">
                         <option value="all">Tous statuts</option>
                         <option value="En_attente">En attente</option>
@@ -135,7 +197,7 @@
     <!-- Tableau principal des documents -->
     <div class="card border-0 shadow-sm rounded-4">
         <div class="table-responsive">
-            <table class="table align-middle mb-0" style="background-color: #fff;">
+            <table class="table align-middle mb-0" style="background-color: #fff; min-width: 900px;">
                 <thead class="table-light">
                     <tr class="text-muted" style="font-size: 0.85rem; font-weight: 700;">
                         <th class="ps-4" style="width: 12%;">Numéro</th>
@@ -206,7 +268,7 @@
                                     @if(Auth::user()->role !== 'Lecture')
                                     <li>
                                         <button class="dropdown-item py-2 text-primary btn-action-convert" data-id="{{ $devis->id_devis }}" data-type="{{ $devis->type }}">
-                                            <i class="bi bi-arrow-left-right me-2"></i> Convertir en facture proforma
+                                            <i class="bi bi-arrow-left-right me-2"></i> Convertir en facture
                                         </button>
                                     </li>
                                     <li>
@@ -263,7 +325,7 @@
                     <p class="text-muted small mb-4">Prochain n° automatique estimé : <strong class="text-navy">{{ $nextNumber }}</strong></p>
                     
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label class="form-label small fw-bold text-uppercase text-muted">Client *</label>
                             <select name="id_client" id="client-select" class="form-select border-light-subtle rounded-3 py-2.5" required>
                                 <option value="" disabled selected>Sélectionner un client</option>
@@ -272,7 +334,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label class="form-label small fw-bold text-uppercase text-muted">Type de document *</label>
                             <select name="type" class="form-select border-light-subtle rounded-3 py-2.5" required>
                                 <option value="Devis" selected>Devis</option>
@@ -291,15 +353,15 @@
                         </select>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
                         <h6 class="fw-bold text-navy mb-0" style="font-size: 0.85rem;">LIGNES DE DEVIS</h6>
-                        <button type="button" id="btn-add-line" class="btn btn-outline-cyan btn-sm rounded-pill px-3 fw-bold">
+                        <button type="button" id="btn-add-line" class="btn btn-outline-cyan btn-sm rounded-pill px-3 fw-bold align-self-start align-self-sm-auto">
                             <i class="bi bi-plus-lg me-1"></i> Ajouter une ligne
                         </button>
                     </div>
 
-                    <div class="table-responsive mb-4">
-                        <table class="table table-borderless align-middle" id="lignes-table">
+                    <div class="table-responsive mb-4" style="overflow-x: visible !important;">
+                        <table class="table table-borderless align-middle mb-0" id="lignes-table" style="width: 100%;">
                             <thead>
                                 <tr class="text-muted small text-uppercase" style="font-size: 0.75rem;">
                                     <th style="width: 50%;">Sélectionner un service</th>
@@ -335,7 +397,7 @@
                     </div>
 
                     <div class="row justify-content-end text-end border-top pt-4">
-                        <div class="col-md-5" style="font-size: 0.9rem;">
+                        <div class="col-12 col-md-5" style="font-size: 0.9rem;">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Total HT :</span>
                                 <span class="fw-bold text-navy" id="label-total-ht">0 FCFA</span>
@@ -375,37 +437,37 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3 mb-4 mt-1">
+                <div class="row g-2 g-md-3 mb-4 mt-1">
                     <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded-3">
-                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Émission</span>
-                            <strong class="d-block mt-1" id="detail-emission">--/--/----</strong>
+                        <div class="p-3 bg-light rounded-3 text-start">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Émission</span>
+                            <strong class="d-block mt-1" id="detail-emission" style="font-size: 0.85rem;">--/--/----</strong>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded-3">
-                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Expiration</span>
-                            <strong class="d-block mt-1" id="detail-expiration">--/--/----</strong>
+                        <div class="p-3 bg-light rounded-3 text-start">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Expiration</span>
+                            <strong class="d-block mt-1" id="detail-expiration" style="font-size: 0.85rem;">--/--/----</strong>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded-3">
-                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Statut</span>
-                            <strong class="d-block mt-1" id="detail-statut">En attente</strong>
+                        <div class="p-3 bg-light rounded-3 text-start">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Statut</span>
+                            <strong class="d-block mt-1" id="detail-statut" style="font-size: 0.85rem;">En attente</strong>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded-3">
-                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Paiement</span>
-                            <strong class="d-block mt-1" id="detail-paiement">Non payé</strong>
+                        <div class="p-3 bg-light rounded-3 text-start">
+                            <span class="d-block small text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Paiement</span>
+                            <strong class="d-block mt-1" id="detail-paiement" style="font-size: 0.85rem;">Non payé</strong>
                         </div>
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-navy mb-3">Détail des lignes</h6>
-                <div class="table-responsive mb-4 border rounded-3">
-                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
+                <h6 class="fw-bold text-navy mb-3 text-start">Détail des lignes</h6>
+                <div class="table-responsive mb-4 border rounded-3" style="overflow-x: visible !important;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem; width: 100%;">
+                        <thead class="table-light d-none d-sm-table-header-group">
                             <tr>
                                 <th class="ps-3">Service</th>
                                 <th class="text-center" style="width: 10%;">Qté</th>
@@ -418,7 +480,7 @@
                 </div>
 
                 <div class="row justify-content-end text-end mb-1">
-                    <div class="col-md-5" style="font-size: 0.9rem;">
+                    <div class="col-12 col-md-5" style="font-size: 0.9rem;">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Total HT :</span>
                             <span class="fw-bold text-navy" id="detail-total-ht">0 FCFA</span>
@@ -431,26 +493,26 @@
                 </div>
             </div>
             
-            <div class="modal-footer border-top-0 pt-0 d-flex flex-wrap gap-2 justify-content-between">
-                <div class="d-flex gap-2">
-                    <a href="#" id="btn-download-pdf" class="btn btn-navy rounded-pill px-3 py-2 fw-bold text-white fs-8" style="background-color: #0D1B4B; text-decoration: none;">
+            <div class="modal-footer border-top-0 pt-0 d-flex flex-column flex-sm-row gap-2 justify-content-between">
+                <div class="d-flex flex-wrap gap-2 w-100 justify-content-sm-start">
+                    <a href="#" id="btn-download-pdf" class="btn btn-navy rounded-pill px-3 py-2 fw-bold text-white fs-8 flex-grow-1 flex-sm-grow-0" style="background-color: #0D1B4B; text-decoration: none; text-align: center;">
                         <i class="bi bi-download me-1"></i> Télécharger PDF
                     </a>
                     
                     @if(Auth::user()->role !== 'Lecture')
-                    <button type="button" id="btn-trigger-email" class="btn btn-outline-cyan rounded-pill px-3 py-2 fw-bold fs-8">
+                    <button type="button" id="btn-trigger-email" class="btn btn-outline-cyan rounded-pill px-3 py-2 fw-bold fs-8 flex-grow-1 flex-sm-grow-0">
                         <i class="bi bi-envelope me-1"></i> Envoyer par email
                     </button>
                     @endif
                 </div>
                 
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2 w-100 justify-content-sm-end">
                     @if(Auth::user()->role !== 'Lecture')
-                    <div class="dropdown dropdown" id="status-dropdown-wrapper">
-                        <button class="btn btn-light rounded-pill px-3 py-2 fw-bold fs-8 dropdown-toggle" type="button" id="btn-status-dropdown" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="border: 2px solid #000; color: #4F5E7B; background-color: #F8FAFC;">
+                    <div class="dropdown flex-grow-1 flex-sm-grow-0" id="status-dropdown-wrapper">
+                        <button class="btn btn-light rounded-pill px-3 py-2 fw-bold fs-8 dropdown-toggle w-100" type="button" id="btn-status-dropdown" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="border: 2px solid #000; color: #4F5E7B; background-color: #F8FAFC;">
                             Modifier le statut
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-3 p-2" aria-labelledby="btn-status-dropdown" id="detail-status-menu" style="min-width: 180px; margin-bottom: 8px !important;">
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-3 p-2 w-100" aria-labelledby="btn-status-dropdown" id="detail-status-menu" style="min-width: 180px; margin-bottom: 8px !important;">
                             <li>
                                 <button type="button" class="dropdown-item py-2.5 d-flex align-items-center gap-2 fw-semibold" style="font-size: 0.85rem;" onclick="updateDocumentStatus(activeDevisId, 'En_attente')">
                                     <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #F59E0B;"></span>
@@ -480,7 +542,7 @@
                     @endif
 
                     @if(Auth::user()->role === 'Admin')
-                    <button type="button" id="btn-delete-devis" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-bold fs-8">
+                    <button type="button" id="btn-delete-devis" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-bold fs-8 flex-grow-1 flex-sm-grow-0">
                         <i class="bi bi-trash3-fill me-1"></i> Supprimer
                     </button>
                     @endif
@@ -499,24 +561,24 @@
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header border-bottom-0 pb-0">
                 <h5 class="modal-title fw-bold text-navy" id="sendEmailModalLabel">Envoyer par email</h5>
-                <button type="button" class="btn-close" data-bs-modal="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="sendEmailForm">
                 <div class="modal-body">
                     <input type="hidden" id="email-devis-id">
-                    <div class="mb-3">
+                    <div class="mb-3 text-start">
                         <label class="form-label small fw-bold text-uppercase text-muted">Destinataire</label>
                         <input type="email" id="email-destinataire" class="form-control border-light-subtle rounded-3 py-2" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 text-start">
                         <label class="form-label small fw-bold text-uppercase text-muted">Objet</label>
                         <input type="text" id="email-objet" class="form-control border-light-subtle rounded-3 py-2" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 text-start">
                         <label class="form-label small fw-bold text-uppercase text-muted">Message</label>
                         <textarea id="email-message" class="form-control border-light-subtle rounded-3 py-2 text-muted" rows="6" style="font-size: 0.85rem;" required></textarea>
                     </div>
-                    <p class="text-muted" style="font-size: 0.75rem; border-top: 1px solid #F1F5F9; padding-top: 10px;">
+                    <p class="text-muted text-start" style="font-size: 0.75rem; border-top: 1px solid #F1F5F9; padding-top: 10px;">
                         <i class="bi bi-paperclip me-1"></i> Le PDF de votre document sera joint automatiquement à votre envoi.
                     </p>
                 </div>

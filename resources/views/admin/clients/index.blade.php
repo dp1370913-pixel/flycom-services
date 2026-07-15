@@ -5,27 +5,27 @@
 @section('content')
 
 <!-- HEADER DE LA PAGE -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
     <div>
         <h1 class="fw-extrabold text-navy mb-1" style="font-size: 1.6rem;">Clients</h1>
         <p class="text-muted mb-0" style="font-size: 0.8rem;">{{ $clients->count() }} contacts dans le CRM</p>
     </div>
     
-    <div class="d-flex gap-2 mt-3 mt-md-0 w-100 w-md-auto">
+    <div class="d-flex flex-wrap gap-2 mt-1 mt-md-0 w-100 w-md-auto">
         @if(Auth::user()->role !== 'Lecture')
-        <button class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-3 py-2" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+        <button class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-3 py-2 flex-grow-1 flex-sm-grow-0" data-bs-toggle="modal" data-bs-target="#importCsvModal">
             <i class="bi bi-box-arrow-in-down me-1"></i> Importer CSV
         </button>
         @endif
         
         @if(Auth::user()->role === 'Admin')
-        <a href="{{ route('admin.clients.export') }}" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-3 py-2" style="text-decoration: none;">
+        <a href="{{ route('admin.clients.export') }}" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-3 py-2 flex-grow-1 flex-sm-grow-0" style="text-decoration: none; text-align: center;">
             <i class="bi bi-download me-1"></i> Export
         </a>
         @endif
         
         @if(Auth::user()->role !== 'Lecture')
-        <button class="btn rounded-3 px-3 py-2 text-white fw-bold" style="font-size: 0.8rem; background: #0D1B4B; border: none;" data-bs-toggle="modal" data-bs-target="#newClientModal">
+        <button class="btn rounded-3 px-3 py-2 text-white fw-bold flex-grow-1 flex-sm-grow-0" style="font-size: 0.8rem; background: #0D1B4B; border: none;" data-bs-toggle="modal" data-bs-target="#newClientModal">
             <i class="bi bi-plus-lg me-1"></i> Nouveau client
         </button>
         @endif
@@ -35,15 +35,15 @@
 <!-- BARRE DE RECHERCHE & FILTRE TYPE -->
 <div class="card border-0 shadow-sm p-3 bg-white rounded-4 mb-4">
     <form action="{{ route('admin.clients.index') }}" method="GET" class="d-flex flex-column flex-md-row gap-2 mb-0">
-        <div class="position-relative flex-grow-1" style="max-width: 420px;">
+        <div class="position-relative flex-grow-1 w-100" style="max-width: 420px;">
             <span class="position-absolute start-0 top-50 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;">
                 <i class="bi bi-search"></i>
             </span>
-            <input type="text" name="search" class="form-control border rounded-3 py-2 ps-5" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0 !important;" placeholder="Rechercher un client..." value="{{ $search }}">
+            <input type="text" name="search" class="form-control border rounded-3 py-2 ps-5 w-100" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0 !important;" placeholder="Rechercher un client..." value="{{ $search }}">
         </div>
         
-        <div style="min-width: 180px;">
-            <select name="type" class="form-select rounded-3 py-2" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0; max-width: 200px;" onchange="this.form.submit()">
+        <div class="w-100" style="max-width: 200px; min-width: 180px;">
+            <select name="type" class="form-select rounded-3 py-2 w-100" style="font-size: 0.82rem; background: #F8FAFC; border-color: #E2E8F0;" onchange="this.form.submit()">
                 <option value="all">Tous types</option>
                 <option value="Client" {{ $typeFilter === 'Client' ? 'selected' : '' }}>Clients</option>
                 <option value="Prospect" {{ $typeFilter === 'Prospect' ? 'selected' : '' }}>Prospects</option>
@@ -56,7 +56,7 @@
 <!-- AFFICHAGE DU TABLEAU DES CLIENTS -->
 <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem; min-width: 750px;">
             <thead class="table-light">
                 <tr>
                     <th scope="col">NOM</th>
@@ -74,7 +74,7 @@
                 @forelse($clients as $client)
                 <tr class="table-row-hover">
                     <td class="fw-bold text-navy d-flex align-items-center gap-3">
-                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.72rem; box-shadow: none;">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.72rem; box-shadow: none; flex-shrink: 0;">
                             {{ substr($client->prenom, 0, 1) }}{{ substr($client->nom, 0, 1) }}
                         </div>
                         <span>{{ $client->prenom }} {{ $client->nom }}</span>
@@ -127,7 +127,7 @@
             <form action="{{ route('admin.clients.import') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body px-4 py-4 fs-8">
-                    <div class="drag-drop-zone rounded-4 p-5 text-center d-flex flex-column align-items-center justify-content-center gap-3" id="dragDropZone">
+                    <div class="drag-drop-zone rounded-4 p-4 p-sm-5 text-center d-flex flex-column align-items-center justify-content-center gap-3" id="dragDropZone">
                         <input type="file" name="csv_file" id="csvFileInput" class="d-none" accept=".csv,text/csv,text/plain" required>
                         <i class="bi bi-cloud-arrow-up text-muted display-4" id="uploadIcon"></i>
                         <div>
@@ -201,7 +201,7 @@
                 </div>
                 <div class="modal-footer border-top border-light px-4 py-3">
                     <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background:#0D1B4B;">Créer la fiche client</button>
+                    <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border-none;">Créer la fiche client</button>
                 </div>
             </form>
         </div>
@@ -263,18 +263,18 @@
                     </div>
                 </div>
                 
-                <div class="modal-footer border-top border-light px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="modal-footer border-top border-light px-4 py-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
                     <div>
-                        <!-- Bouton de suppression exclusivement réservé à l'Administrateur d'entreprise (Isolation UX - M3) -->
+                        <!-- Bouton de suppression exclusivement réservé à l'Administrateur d'entreprise -->
                         @if(Auth::user()->role === 'Admin')
-                        <button type="button" class="btn btn-outline-danger rounded-3 fs-8 fw-semibold px-3 py-2" id="btnDeleteClient">
-                            <i class="bi bi-trash3-fill me-1"></i> Supprimer ce client
+                        <button type="button" class="btn btn-outline-danger rounded-3 fs-8 fw-semibold px-3 py-2 w-100 w-sm-auto" id="btnDeleteClient">
+                            <i class="bi bi-trash3-fill me-1"></i> Supprimer
                         </button>
                         @endif
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end">
                         <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;">Enregistrer les modifications</button>
+                        <button type="submit" class="btn rounded-3 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;">Enregistrer</button>
                     </div>
                 </div>
             </form>
@@ -367,17 +367,14 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit_adresse').value = "";
             document.getElementById('edit_notes').value = "";
 
-            // Configurer dynamiquement la route de mise à jour (Fichier 1 / 2)
             if (editForm) {
                 editForm.action = `/admin/clients/${clientId}/update`;
             }
 
-            // Configurer dynamiquement la route de suppression pour l'Admin
             if (deleteForm) {
                 deleteForm.action = `/admin/clients/${clientId}/delete`;
             }
 
-            // Récupérer les données de la fiche client en AJAX (Fichier 2)
             fetch(`/admin/clients/${clientId}/details`)
                 .then(res => res.json())
                 .then(data => {

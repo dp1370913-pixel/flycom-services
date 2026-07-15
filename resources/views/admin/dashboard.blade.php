@@ -11,7 +11,7 @@
 </div>
 
 <!-- LIGNE DES 4 WIDGETS DE STATISTIQUES (KPIs) -->
-<div class="row g-4 mb-4 animate-fade-in" style="animation-delay: 0.1s;">
+<div class="row g-3 g-sm-4 mb-4 animate-fade-in" style="animation-delay: 0.1s;">
     
     <!-- Leads du jour -->
     <div class="col-12 col-sm-6 col-lg-3">
@@ -41,7 +41,7 @@
                     <i class="bi bi-person-badge-fill"></i>
                 </div>
             </div>
-            <span class="fs-9 text-muted"><i class="bi bi-clock me-1"></i> En cours de traitement</span>
+            <span class="fs-9 text-muted"><i class="bi bi-clock me-1"></i> En cours</span>
         </div>
     </div>
 
@@ -67,20 +67,20 @@
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                     <span class="fs-9 text-muted text-uppercase fw-bold tracking-wider d-block mb-1">CA Estimé Mois</span>
-                    <span class="display-6 fw-extrabold text-navy d-block" style="font-size: 1.45rem; line-height: 2;">{{ number_format($caEstimeMois, 0, ',', ' ') }} FCFA</span>
+                    <span class="fw-extrabold text-navy d-block lh-sm mt-1" style="font-size: 1.35rem;">{{ number_format($caEstimeMois, 0, ',', ' ') }} FCFA</span>
                 </div>
                 <div class="kpi-icon-badge bg-light-soft text-navy">
                     <i class="bi bi-cash-stack"></i>
                 </div>
             </div>
-            <span class="fs-9 text-muted"><i class="bi bi-graph-up me-1"></i> Basé sur les devis acceptés</span>
+            <span class="fs-9 text-muted mt-2 d-block"><i class="bi bi-graph-up me-1"></i> Devis acceptés</span>
         </div>
     </div>
 
 </div>
 
-<!-- BARRE DE FILTRAGE DES PÉRIODES (Image 2) -->
-<div class="d-flex align-items-center gap-2 mb-4 animate-fade-in" style="animation-delay: 0.15s;">
+<!-- BARRE DE FILTRAGE DES PÉRIODES -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4 animate-fade-in" style="animation-delay: 0.15s;">
     <span class="fs-9 text-muted fw-bold text-uppercase me-2">Période :</span>
     <button class="btn btn-period-pill" data-period="7">7 jours</button>
     <button class="btn btn-period-pill active" data-period="30">30 jours</button>
@@ -94,7 +94,7 @@
     <div class="col-12 col-lg-6">
         <div class="card border-0 shadow-sm p-4 bg-white rounded-4 h-100">
             <h2 class="h6 fw-extrabold text-navy mb-4">Leads par source</h2>
-            <div class="chart-container mx-auto position-relative" style="height: 260px; max-width: 260px;">
+            <div class="chart-container mx-auto position-relative" style="height: 260px; width: 100%; max-width: 260px;">
                 <canvas id="sourceChart"></canvas>
             </div>
         </div>
@@ -120,7 +120,7 @@
         <div class="card border-0 shadow-sm p-4 bg-white rounded-4 h-100">
             <h2 class="h6 fw-extrabold text-navy mb-4">Leads récents</h2>
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 fs-8">
+                <table class="table table-hover align-middle mb-0 fs-8" style="min-width: 500px;">
                     <thead class="table-light">
                         <tr>
                             <th scope="col">Client</th>
@@ -170,12 +170,12 @@
             <div class="card border-0 shadow-sm p-4 bg-white rounded-4 flex-grow-1">
                 <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-calendar-check text-cyan me-2"></i> Relances du jour</h2>
                 @forelse($relancesDuJour as $relance)
-                <div class="p-3 bg-light rounded-3 mb-2 d-flex justify-content-between align-items-center list-item-hover">
-                    <div>
-                        <span class="fw-bold d-block fs-8 text-navy">{{ $relance->client->prenom }} {{ $relance->client->nom }}</span>
-                        <small class="text-muted fs-10">Tél : {{ $relance->client->telephone }}</small>
+                <div class="p-3 bg-light rounded-3 mb-2 d-flex justify-content-between align-items-center gap-2 list-item-hover">
+                    <div class="text-truncate">
+                        <span class="fw-bold d-block fs-8 text-navy text-truncate">{{ $relance->client->prenom }} {{ $relance->client->nom }}</span>
+                        <small class="text-muted fs-10 d-block text-truncate">Tél : {{ $relance->client->telephone }}</small>
                     </div>
-                    <a href="tel:{{ $relance->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle"><i class="bi bi-telephone-fill"></i></a>
+                    <a href="tel:{{ $relance->client->telephone }}" class="btn btn-cyan btn-sm rounded-circle flex-shrink-0" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;"><i class="bi bi-telephone-fill" style="font-size: 0.85rem;"></i></a>
                 </div>
                 @empty
                 <div class="text-center py-4 my-auto">
@@ -189,12 +189,12 @@
             <div class="card border-0 shadow-sm p-4 bg-white rounded-4 flex-grow-1">
                 <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-exclamation-triangle text-danger me-2"></i> Devis en attente (+7j)</h2>
                 @forelse($devisEnAttente as $devisItem)
-                <div class="p-3 bg-light rounded-3 mb-2 d-flex justify-content-between align-items-center list-item-hover">
-                    <div>
-                        <span class="fw-bold d-block fs-8 text-navy">{{ $devisItem->numero }}</span>
-                        <small class="text-muted fs-10">{{ $devisItem->client->prenom }} {{ $devisItem->client->nom }}</small>
+                <div class="p-3 bg-light rounded-3 mb-2 d-flex justify-content-between align-items-center gap-2 list-item-hover">
+                    <div class="text-truncate">
+                        <span class="fw-bold d-block fs-8 text-navy text-truncate">{{ $devisItem->numero }}</span>
+                        <small class="text-muted fs-10 d-block text-truncate">{{ $devisItem->client->prenom }} {{ $devisItem->client->nom }}</small>
                     </div>
-                    <span class="badge bg-danger-transparent text-danger fs-9 fw-bold">{{ number_format($devisItem->montant_ttc, 0, ',', ' ') }} F</span>
+                    <span class="badge bg-danger-transparent text-danger fs-9 fw-bold flex-shrink-0 px-2 py-1.5 rounded-3">{{ number_format($devisItem->montant_ttc, 0, ',', ' ') }} F</span>
                 </div>
                 @empty
                 <div class="text-center py-4 my-auto">
@@ -209,11 +209,11 @@
 
 </div>
 
-<!-- SCRIPT GRAPHISMES DYNAMIQUES AVEC GESTION DE FILTRES MORPHIQUES -->
+<!-- SCRIPT GRAPHISMES DYNAMIQUES AVEC GESTION DE FILTRES -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 1. Chargement des jeux de données complets pré-calculés par PHP pour les 3 périodes (7j, 30j, 90j)
+    // 1. Chargement des jeux de données complets pré-calculés par PHP
     const donutDatasets = {!! json_encode($donutDatasets) !!};
     const lineDatasets = {!! json_encode($lineDatasets) !!};
 
@@ -303,26 +303,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. MOTEUR INTERACTIF : GESTION DES FILTRES DE PÉRIODE SANS RECHARGEMENT (Image 2)
+    // 4. MOTEUR INTERACTIF : GESTION DES FILTRES DE PÉRIODE
     const periodButtons = document.querySelectorAll('.btn-period-pill');
     
     periodButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Retirer l'état actif de tous les boutons et l'appliquer au sélectionné
             periodButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            const period = button.getAttribute('data-period'); // Récupère 7, 30 ou 90
+            const period = button.getAttribute('data-period'); 
 
             // 1. Morphing du Donut Chart
             sourceChart.data.datasets[0].data = donutDatasets[period];
-            sourceChart.update('active'); // Animation d'ajustement fluide
+            sourceChart.update('active'); 
 
             // 2. Morphing du Line Chart
             evolutionChart.data.labels = lineDatasets[period]['labels'];
             evolutionChart.data.datasets[0].data = lineDatasets[period]['created'];
             evolutionChart.data.datasets[1].data = lineDatasets[period]['won'];
-            evolutionChart.update('active'); // Animation de transition fluide
+            evolutionChart.update('active'); 
         });
     });
 

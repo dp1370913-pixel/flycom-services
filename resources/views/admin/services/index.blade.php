@@ -3,7 +3,7 @@
 @section('title', 'Catalogue des Services | Flycom Services CRM')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
     <div>
         <h1 class="h3 fw-extrabold text-navy mb-1">Catalogue des Services</h1>
         <p class="text-muted fs-8 mb-0">{{ $services->count() }} services actifs · {{ $services->count() }} au total</p>
@@ -11,8 +11,8 @@
     
     <!-- ACTION D'AJOUT MASQUÉE POUR LE RÔLE LECTURE -->
     @if(Auth::user()->role !== 'Lecture')
-    <div class="mt-3 mt-md-0">
-        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn" data-bs-toggle="modal" data-bs-target="#newServiceModal" style="background-color: #00B4D8; border: none; color: #fff;">
+    <div class="mt-1 mt-md-0 w-100 w-md-auto text-end">
+        <button class="btn btn-cyan rounded-3 fs-8 fw-bold px-3 py-2 shadow-cyan-btn w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#newServiceModal" style="background-color: #00B4D8; border: none; color: #fff;">
             <i class="bi bi-plus-lg me-1"></i> Nouveau service
         </button>
     </div>
@@ -90,9 +90,9 @@
 
             <div class="card-body p-4 d-flex flex-column justify-content-between">
                 <div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h3 class="h6 fw-extrabold text-navy mb-0">{{ $service->nom_service }}</h3>
-                        <span class="badge bg-cyan-soft text-cyan px-2 py-1 rounded-3 fs-10 fw-bold">{{ $service->categorie }}</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                        <h3 class="h6 fw-extrabold text-navy mb-0 text-truncate" style="max-width: 70%;">{{ $service->nom_service }}</h3>
+                        <span class="badge bg-cyan-soft text-cyan px-2 py-1 rounded-3 fs-10 fw-bold flex-shrink-0">{{ $service->categorie }}</span>
                     </div>
                     
                     <p class="fs-8 text-muted mb-3 leading-relaxed">
@@ -100,7 +100,7 @@
                     </p>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light mt-2 fs-8">
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light mt-2 fs-8 gap-2">
                     @if($service->actif)
                         <span class="badge bg-success-soft text-success px-2 py-1 rounded-3"><i class="bi bi-check-circle-fill me-1"></i> Actif</span>
                     @else
@@ -109,7 +109,7 @@
 
                     <!-- ACTION DE MODIFICATION MASQUÉE POUR LE RÔLE LECTURE -->
                     @if(Auth::user()->role !== 'Lecture')
-                    <button class="btn btn-light btn-sm rounded-pill px-3 py-1 fw-bold fs-9 text-navy border-0 btn-edit-service"
+                    <button class="btn btn-light btn-sm rounded-pill px-3 py-1 fw-bold fs-9 text-navy border-0 btn-edit-service flex-shrink-0"
                         data-bs-toggle="modal"
                         data-bs-target="#editServiceModal"
                         data-id="{{ $service->id_service }}"
@@ -149,7 +149,7 @@
             
             <form action="{{ route('admin.services.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <div class="modal-body px-4 py-4 row g-3 fs-8">
+                <div class="modal-body px-4 py-4 row g-3 fs-8 text-start">
                     
                     <div class="col-md-6">
                         <label for="nom_service" class="form-label fw-bold text-navy text-uppercase">Nom du service *</label>
@@ -188,12 +188,12 @@
                         <textarea name="description" id="description" class="form-control bg-light border-light py-2 fs-8" rows="4" placeholder="Description détaillée du service..." required style="box-shadow: none !important;"></textarea>
                     </div>
 
-                    <div class="col-md-8">
+                    <div class="col-12 col-md-8">
                         <label for="image_file" class="form-label fw-bold text-navy text-uppercase">Image du service</label>
                         <input type="file" name="image_file" id="image_file" class="form-control bg-light border-light py-2 fs-8" accept="image/*" style="box-shadow: none !important;">
                     </div>
 
-                    <div class="col-md-4 d-flex align-items-center pt-4">
+                    <div class="col-12 col-md-4 d-flex align-items-center pt-3 pt-md-4">
                         <div class="form-check form-switch p-2 rounded-3 border border-light bg-light d-flex align-items-center gap-2 w-100">
                             <input class="form-check-input ms-1" type="checkbox" name="actif" id="serviceActif" checked style="width: 32px; height: 16px;">
                             <label class="form-check-label fs-9 text-navy fw-semibold" for="serviceActif">Visible sur le site</label>
@@ -225,7 +225,7 @@
             
             <form action="" method="POST" id="editServiceForm" enctype="multipart/form-data">
                 @csrf
-                <div class="modal-body px-4 py-4 row g-3 fs-8">
+                <div class="modal-body px-4 py-4 row g-3 fs-8 text-start">
                     
                     <div class="col-md-6">
                         <label for="edit_nom_service" class="form-label fw-bold text-navy text-uppercase">Nom du service *</label>
@@ -264,7 +264,7 @@
                         <textarea name="description" id="edit_description" class="form-control bg-light border-light py-2 fs-8" rows="4" required style="box-shadow: none !important;"></textarea>
                     </div>
 
-                    <div class="col-md-8">
+                    <div class="col-12 col-md-8">
                         <label for="edit_image_file" class="form-label fw-bold text-navy text-uppercase">Remplacer l'image</label>
                         <input type="file" name="image_file" id="edit_image_file" class="form-control bg-light border-light py-2 fs-8" accept="image/*" style="box-shadow: none !important;">
                         
@@ -274,7 +274,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4 d-flex align-items-center pt-4">
+                    <div class="col-12 col-md-4 d-flex align-items-center pt-3 pt-md-4">
                         <div class="form-check form-switch p-2 rounded-3 border border-light bg-light d-flex align-items-center gap-2 w-100">
                             <input class="form-check-input ms-1" type="checkbox" name="actif" id="edit_actif" style="width: 32px; height: 16px;">
                             <label class="form-check-label fs-9 text-navy fw-semibold" for="edit_actif">Visible sur le site</label>
@@ -284,15 +284,15 @@
                 </div>
                 
                 <!-- FOOTER MODAL : Intègre le bouton de suppression pour l'Admin (Image 25) -->
-                <div class="modal-footer border-top border-light px-4 py-3 d-flex justify-content-between gap-2">
+                <div class="modal-footer border-top border-light px-4 py-3 d-flex justify-content-between gap-2 flex-wrap">
                     <div>
                         @if(Auth::user()->role === 'Admin')
-                        <button type="button" class="btn btn-outline-danger rounded-3 fs-8 fw-semibold px-3 py-2" id="btnDeleteService" style="border-radius: 8px !important;">
+                        <button type="button" class="btn btn-outline-danger rounded-3 fs-8 fw-semibold px-3 py-2 w-100 w-sm-auto" id="btnDeleteService" style="border-radius: 8px !important;">
                             <i class="bi bi-trash3-fill"></i> Supprimer
                         </button>
                         @endif
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end">
                         <button type="button" class="btn btn-outline-secondary rounded-3 fs-8 fw-semibold px-4 py-2" data-bs-dismiss="modal">Annuler</button>
                         <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none; width: auto !important;">Enregistrer les modifications</button>
                     </div>

@@ -36,43 +36,43 @@
 <!-- SOUS-ONGLET 1 : ENTREPRISE                 -->
 <!-- ========================================== -->
 <div class="settings-tab-pane active" id="tab-entreprise">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-info-circle-fill text-cyan me-2"></i> Informations entreprise</h2>
         
         <form action="{{ route('admin.settings.updateEntreprise') }}" method="POST" class="row g-3 fs-8 text-start">
             @csrf
             <div class="col-md-6">
                 <label class="form-label fw-bold text-navy text-uppercase">Nom de l'entreprise</label>
-                <input type="text" name="nom_entreprise" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['nom_entreprise'] ?? 'Flycom Services' }}" required>
+                <input type="text" name="nom_entreprise" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['nom_entreprise'] ?? 'Flycom Services' }}" required style="box-shadow: none !important;">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold text-navy text-uppercase">Téléphone</label>
-                <input type="text" name="telephone" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['telephone_entreprise'] ?? '+242066285741' }}" required>
+                <input type="text" name="telephone" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['telephone_entreprise'] ?? '+242066285741' }}" required style="box-shadow: none !important;">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold text-navy text-uppercase">Email de contact</label>
-                <input type="email" name="email_contact" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['email_entreprise'] ?? 'contact@flycomservices.cg' }}" required>
+                <input type="email" name="email_contact" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['email_entreprise'] ?? 'contact@flycomservices.cg' }}" required style="box-shadow: none !important;">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold text-navy text-uppercase">Adresse</label>
-                <input type="text" name="adresse" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['adresse_entreprise'] ?? '22, Avenue de Brazza — La Glacière, Brazzaville' }}" required>
+                <input type="text" name="adresse" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['adresse_entreprise'] ?? '22, Avenue de Brazza — La Glacière, Brazzaville' }}" required style="box-shadow: none !important;">
             </div>
             <div class="col-12 mt-4 text-end">
-                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white w-100 w-sm-auto" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
             </div>
         </form>
     </div>
 
     <!-- Carte Profil Connecté -->
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4">
         <h2 class="h6 fw-extrabold text-navy mb-3"><i class="bi bi-person-badge-fill text-cyan me-2"></i> Profil connecté</h2>
-        <div class="p-3 rounded-4 d-flex align-items-center gap-3 border border-light bg-light max-w-sm text-start">
-            <div class="avatar-circle">
+        <div class="p-3 rounded-4 d-flex align-items-center gap-3 border border-light bg-light max-w-sm text-start w-100" style="max-width: 360px;">
+            <div class="avatar-circle flex-shrink-0">
                 {{ substr(Auth::user()->prenom_user, 0, 1) }}{{ substr(Auth::user()->nom_user, 0, 1) }}
             </div>
-            <div>
-                <span class="d-block fw-bold text-navy fs-8">{{ Auth::user()->prenom_user }} {{ Auth::user()->nom_user }}</span>
-                <small class="text-muted d-block mb-1">Email : {{ Auth::user()->email }}</small>
+            <div class="text-truncate">
+                <span class="d-block fw-bold text-navy fs-8 text-truncate">{{ Auth::user()->prenom_user }} {{ Auth::user()->nom_user }}</span>
+                <small class="text-muted d-block mb-1 text-truncate">Email : {{ Auth::user()->email }}</small>
                 <span class="badge bg-navy-dark text-white fs-10 fw-bold">{{ Auth::user()->role }}</span>
             </div>
         </div>
@@ -83,34 +83,34 @@
 <!-- SOUS-ONGLET 2 : FISCAL & TVA               -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-fiscal">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-percent me-2 text-cyan"></i> Fiscalité &amp; Devis</h2>
         
         <form action="{{ route('admin.settings.updateFiscal') }}" method="POST" class="row g-3 fs-8 text-start">
             @csrf
             <div class="col-md-6">
                 <label for="tva_taux" class="form-label fw-bold text-navy text-uppercase">Taux TVA (%)</label>
-                <input type="number" name="tva_taux" id="tva_taux" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['tva_taux_defaut'] ?? '0' }}" min="0" max="100" required>
+                <input type="number" name="tva_taux" id="tva_taux" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['tva_taux_defaut'] ?? '0' }}" min="0" max="100" required style="box-shadow: none !important;">
                 <small class="text-muted fs-10 mt-1 d-block">0% = exonération de la TVA (régime spécial franchise de base).</small>
             </div>
             <div class="col-md-6">
                 <label for="devise" class="form-label fw-bold text-navy text-uppercase">Devise</label>
-                <select name="devise" id="devise" class="form-select bg-light border-light py-2 fs-8" required>
+                <select name="devise" id="devise" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow: none !important;">
                     <option value="FCFA" selected>FCFA - Franc CFA</option>
                     <option value="EUR">EUR - Euro</option>
                     <option value="USD">USD - Dollar US</option>
                 </select>
             </div>
             <div class="col-12 mt-4 text-end">
-                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white w-100 w-sm-auto" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
             </div>
         </form>
     </div>
 
     <!-- Message fiscal informatif de la DGID Congo -->
-    <div class="card border-0 shadow-sm p-4 bg-warning-transparent rounded-4 border border-warning-subtle text-start">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-warning-transparent rounded-4 border border-warning-subtle text-start">
         <div class="d-flex gap-3 align-items-start fs-8">
-            <i class="bi bi-info-circle-fill text-warning fs-4"></i>
+            <i class="bi bi-info-circle-fill text-warning fs-4 flex-shrink-0"></i>
             <div>
                 <strong class="text-warning d-block mb-1">Configuration fiscale Congo</strong>
                 <p class="mb-0 text-muted leading-relaxed">
@@ -125,34 +125,34 @@
 <!-- SOUS-ONGLET 3 : IA WHATSAPP                -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-ia">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-robot text-cyan me-2"></i> Agent IA WhatsApp</h2>
         
         <form action="{{ route('admin.settings.updateIA') }}" method="POST" class="row g-3 fs-8 text-start">
             @csrf
             
             <div class="col-12">
-                <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between">
-                    <div>
+                <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between gap-3">
+                    <div class="text-truncate">
                         <strong class="text-navy d-block fs-8 mb-1">Activer l'agent IA</strong>
-                        <span class="text-muted fs-10 d-block">Réponse automatique aux messages WhatsApp entrants</span>
+                        <span class="text-muted fs-10 d-block text-truncate">Réponse automatique aux messages WhatsApp entrants</span>
                     </div>
-                    <input class="form-check-input me-1" type="checkbox" name="whatsapp_ia_active" id="iaActive" value="true" {{ ($configs['whatsapp_ia_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
+                    <input class="form-check-input me-1 flex-shrink-0" type="checkbox" name="whatsapp_ia_active" id="iaActive" value="true" {{ ($configs['whatsapp_ia_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
                 </div>
             </div>
 
             <div class="col-md-6 mt-4">
                 <label for="heure_ouverture" class="form-label fw-bold text-navy text-uppercase">Heure début</label>
-                <input type="time" name="heure_ouverture" id="heure_ouverture" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['heure_ouverture'] ?? '08:00' }}" required>
+                <input type="time" name="heure_ouverture" id="heure_ouverture" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['heure_ouverture'] ?? '08:00' }}" required style="box-shadow: none !important;">
             </div>
             <div class="col-md-6 mt-4">
                 <label for="heure_fermeture" class="form-label fw-bold text-navy text-uppercase">Heure fin</label>
-                <input type="time" name="heure_fermeture" id="heure_fermeture" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['heure_fermeture'] ?? '18:00' }}" required>
+                <input type="time" name="heure_fermeture" id="heure_fermeture" class="form-control bg-light border-light py-2 fs-8" value="{{ $configs['heure_fermeture'] ?? '18:00' }}" required style="box-shadow: none !important;">
             </div>
 
             <div class="col-12 mt-4">
                 <label for="jours_ouvrables" class="form-label fw-bold text-navy text-uppercase">Jours ouvrables</label>
-                <select name="jours_ouvrables" id="jours_ouvrables" class="form-select bg-light border-light py-2 fs-8" required>
+                <select name="jours_ouvrables" id="jours_ouvrables" class="form-select bg-light border-light py-2 fs-8" required style="box-shadow: none !important;">
                     <option value="Lun-Sam" {{ ($configs['jours_ouvrables'] ?? '') === 'Lun-Sam' ? 'selected' : '' }}>Lundi - Samedi</option>
                     <option value="Lun-Ven" {{ ($configs['jours_ouvrables'] ?? '') === 'Lun-Ven' ? 'selected' : '' }}>Lundi - Vendredi</option>
                     <option value="Tous" {{ ($configs['jours_ouvrables'] ?? '') === 'Tous' ? 'selected' : '' }}>Tous les jours</option>
@@ -160,7 +160,7 @@
             </div>
 
             <div class="col-12 mt-4 text-end">
-                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white w-100 w-sm-auto" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
             </div>
         </form>
     </div>
@@ -170,19 +170,19 @@
 <!-- SOUS-ONGLET 3.5 : IA SITE WEB              -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-ia-web">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4 mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4 mb-4">
         <h2 class="h6 fw-extrabold text-navy mb-4"><i class="bi bi-robot text-cyan me-2"></i> Assistant IA Site Web (Vitrine)</h2>
         
         <form action="{{ route('admin.settings.updateWebIA') }}" method="POST" enctype="multipart/form-data" class="row g-3 fs-8 text-start">
             @csrf
             
             <div class="col-12">
-                <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between">
-                    <div>
+                <div class="form-check form-switch p-3 rounded-4 border border-light bg-light d-flex align-items-center justify-content-between gap-3">
+                    <div class="text-truncate">
                         <strong class="text-navy d-block fs-8 mb-1">Activer l'assistant virtuel</strong>
-                        <span class="text-muted fs-10 d-block">Réponse automatique aux internautes du site vitrine</span>
+                        <span class="text-muted fs-10 d-block text-truncate">Réponse automatique aux internautes du site vitrine</span>
                     </div>
-                    <input class="form-check-input me-1" type="checkbox" name="chatbot_active" id="webIaActive" value="true" {{ ($configs['chatbot_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
+                    <input class="form-check-input me-1 flex-shrink-0" type="checkbox" name="chatbot_active" id="webIaActive" value="true" {{ ($configs['chatbot_active'] ?? 'true') === 'true' ? 'checked' : '' }} style="width: 38px; height: 18px; cursor:pointer;">
                 </div>
             </div>
 
@@ -221,14 +221,14 @@
                 
                 @if(isset($configs['chatbot_knowledge_pdf_filename']))
                     <div class="alert alert-info py-2 px-3 rounded-3 mt-3 d-flex align-items-center gap-2 border-0 fs-10 fw-semibold text-info" style="background-color: #EFF6FF; width: fit-content;">
-                        <i class="bi bi-file-earmark-pdf-fill fs-5"></i> 
-                        <span>Fichier actif analysé : <strong>{{ $configs['chatbot_knowledge_pdf_filename'] }}</strong></span>
+                        <i class="bi bi-file-earmark-pdf-fill fs-5 flex-shrink-0"></i> 
+                        <span class="text-wrap">Fichier actif analysé : <strong>{{ $configs['chatbot_knowledge_pdf_filename'] }}</strong></span>
                     </div>
                 @endif
             </div>
 
             <div class="col-12 mt-4 text-end">
-                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
+                <button type="submit" class="btn btn-navy rounded-3 fs-8 fw-bold px-4 py-2 text-white w-100 w-sm-auto" style="background:#0D1B4B; border:none;"><i class="bi bi-save me-1"></i> Enregistrer</button>
             </div>
         </form>
     </div>
@@ -238,14 +238,14 @@
 <!-- SOUS-ONGLET 4 : JOURNAL D'ACTIVITÉ         -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-journal">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
-        <div class="mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4">
+        <div class="mb-4 text-start">
             <h2 class="h6 fw-extrabold text-navy mb-1"><i class="bi bi-journal-text text-cyan me-2"></i> Journal d'activité IA &amp; Système</h2>
             <p class="text-muted fs-9 mb-0">Dernières interactions automatisées (Chatbot, WhatsApp IA)</p>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 fs-8 text-start">
+            <table class="table table-hover align-middle mb-0 fs-8 text-start" style="min-width: 600px;">
                 <thead class="table-light">
                     <tr>
                         <th scope="col" style="width: 20%;">Date</th>
@@ -283,19 +283,19 @@
 <!-- SOUS-ONGLET 5 : UTILISATEURS               -->
 <!-- ========================================== -->
 <div class="settings-tab-pane" id="tab-utilisateurs">
-    <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="card border-0 shadow-sm p-3 p-sm-4 bg-white rounded-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3 text-start">
             <div>
                 <h2 class="h6 fw-extrabold text-navy mb-1"><i class="bi bi-people-fill text-cyan me-2"></i> Gestion des utilisateurs</h2>
                 <p class="text-muted fs-9 mb-0">Déclarez les accès et comptes de garde de vos collaborateurs.</p>
             </div>
-            <button class="btn rounded-3 px-3 py-2 text-white fw-bold fs-8" style="background:#0D1B4B; border:none;" data-bs-toggle="modal" data-bs-target="#newUserModal">
+            <button class="btn rounded-3 px-3 py-2 text-white fw-bold fs-8 w-100 w-sm-auto" style="background:#0D1B4B; border:none;" data-bs-toggle="modal" data-bs-target="#newUserModal">
                 <i class="bi bi-plus-lg me-1"></i> Ajouter un utilisateur
             </button>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 fs-8 text-start">
+            <table class="table table-hover align-middle mb-0 fs-8 text-start" style="min-width: 650px;">
                 <thead class="table-light">
                     <tr>
                         <th scope="col">Utilisateur</th>
@@ -309,7 +309,7 @@
                     @foreach($users as $user)
                     <tr class="table-row-hover">
                         <td class="fw-bold text-navy d-flex align-items-center gap-3">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.72rem; box-shadow: none;">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.72rem; box-shadow: none; flex-shrink: 0;">
                                 {{ substr($user->prenom_user, 0, 1) }}{{ substr($user->nom_user, 0, 1) }}
                             </div>
                             <span>{{ $user->prenom_user }} {{ $user->nom_user }}</span>
